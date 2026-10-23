@@ -1,0 +1,211 @@
+[
+  {
+    "clusterId": "cluster-bdg-caringin",
+    "regionId": "32.73",
+    "regionName": "Kota Bandung",
+    "commodityId": "cabai_rawit_merah",
+    "namaPasar": "Pasar Induk Caringin",
+    "lat": -6.9421,
+    "lng": 107.5758,
+    "radiusKm": 2.1,
+    "consensusMedianHarga": 51200,
+    "officialHap": 45000,
+    "totalReports": 14,
+    "statusKonsensus": "VERIFIED_SPIKE",
+    "laporan": [
+      {
+        "id": "cr-01",
+        "hargaRp": 51000,
+        "isOutlier": false,
+        "reporterId": "dev-f89a",
+        "timestamp": "2026-10-23T06:15:00Z"
+      },
+      {
+        "id": "cr-02",
+        "hargaRp": 51500,
+        "isOutlier": false,
+        "reporterId": "dev-c21d",
+        "timestamp": "2026-10-23T06:22:00Z"
+      },
+      {
+        "id": "cr-03",
+        "hargaRp": 51000,
+        "isOutlier": false,
+        "reporterId": "dev-e41a",
+        "timestamp": "2026-10-23T06:40:00Z"
+      },
+      {
+        "id": "cr-04",
+        "hargaRp": 52000,
+        "isOutlier": false,
+        "reporterId": "dev-198c",
+        "timestamp": "2026-10-23T07:05:00Z"
+      },
+      {
+        "id": "cr-05",
+        "hargaRp": 51000,
+        "isOutlier": false,
+        "reporterId": "dev-652e",
+        "timestamp": "2026-10-23T07:11:00Z"
+      },
+      {
+        "id": "cr-06",
+        "hargaRp": 50500,
+        "isOutlier": false,
+        "reporterId": "dev-338b",
+        "timestamp": "2026-10-23T07:30:00Z"
+      },
+      {
+        "id": "cr-07",
+        "hargaRp": 51200,
+        "isOutlier": false,
+        "reporterId": "dev-a82f",
+        "timestamp": "2026-10-23T07:44:00Z"
+      },
+      {
+        "id": "cr-08",
+        "hargaRp": 51500,
+        "isOutlier": false,
+        "reporterId": "dev-b90e",
+        "timestamp": "2026-10-23T08:02:00Z"
+      },
+      {
+        "id": "cr-09",
+        "hargaRp": 51000,
+        "isOutlier": false,
+        "reporterId": "dev-441d",
+        "timestamp": "2026-10-23T08:15:00Z"
+      },
+      {
+        "id": "cr-10",
+        "hargaRp": 52000,
+        "isOutlier": false,
+        "reporterId": "dev-773a",
+        "timestamp": "2026-10-23T08:29:00Z"
+      },
+      {
+        "id": "cr-11",
+        "hargaRp": 51000,
+        "isOutlier": false,
+        "reporterId": "dev-992c",
+        "timestamp": "2026-10-23T08:35:00Z"
+      },
+      {
+        "id": "cr-12",
+        "hargaRp": 51800,
+        "isOutlier": false,
+        "reporterId": "dev-103f",
+        "timestamp": "2026-10-23T08:48:00Z"
+      },
+      {
+        "id": "cr-13",
+        "hargaRp": 51000,
+        "isOutlier": false,
+        "reporterId": "dev-229b",
+        "timestamp": "2026-10-23T09:00:00Z"
+      },
+      {
+        "id": "cr-spec-01",
+        "hargaRp": 75000,
+        "isOutlier": true,
+        "reason": "MAD Z-score > 3.0 (Spekulasi Abnormal)",
+        "reporterId": "dev-bot-99",
+        "timestamp": "2026-10-23T09:12:00Z"
+      }
+    ]
+  },
+  {
+    "clusterId": "cluster-bks-kranji",
+    "regionId": "32.75",
+    "regionName": "Kota Bekasi",
+    "commodityId": "bawang_merah",
+    "namaPasar": "Pasar Kranji Baru",
+    "lat": -6.2285,
+    "lng": 106.9782,
+    "radiusKm": 1.8,
+    "consensusMedianHarga": 36000,
+    "officialHap": 32000,
+    "totalReports": 11,
+    "statusKonsensus": "VERIFIED_SPIKE",
+    "laporan": [
+      {
+        "id": "cr-bk-01",
+        "hargaRp": 35500,
+        "isOutlier": false,
+        "reporterId": "dev-aa11",
+        "timestamp": "2026-10-23T06:10:00Z"
+      },
+      {
+        "id": "cr-bk-02",
+        "hargaRp": 36000,
+        "isOutlier": false,
+        "reporterId": "dev-bb22",
+        "timestamp": "2026-10-23T06:30:00Z"
+      },
+      {
+        "id": "cr-bk-03",
+        "hargaRp": 36000,
+        "isOutlier": false,
+        "reporterId": "dev-cc33",
+        "timestamp": "2026-10-23T06:55:00Z"
+      },
+      {
+        "id": "cr-bk-04",
+        "hargaRp": 36500,
+        "isOutlier": false,
+        "reporterId": "dev-dd44",
+        "timestamp": "2026-10-23T07:20:00Z"
+      },
+      {
+        "id": "cr-bk-05",
+        "hargaRp": 36000,
+        "isOutlier": false,
+        "reporterId": "dev-ee55",
+        "timestamp": "2026-10-23T07:40:00Z"
+      },
+      {
+        "id": "cr-bk-06",
+        "hargaRp": 35800,
+        "isOutlier": false,
+        "reporterId": "dev-ff66",
+        "timestamp": "2026-10-23T08:00:00Z"
+      },
+      {
+        "id": "cr-bk-07",
+        "hargaRp": 36200,
+        "isOutlier": false,
+        "reporterId": "dev-gg77",
+        "timestamp": "2026-10-23T08:15:00Z"
+      },
+      {
+        "id": "cr-bk-08",
+        "hargaRp": 36000,
+        "isOutlier": false,
+        "reporterId": "dev-hh88",
+        "timestamp": "2026-10-23T08:30:00Z"
+      },
+      {
+        "id": "cr-bk-09",
+        "hargaRp": 36500,
+        "isOutlier": false,
+        "reporterId": "dev-ii99",
+        "timestamp": "2026-10-23T08:45:00Z"
+      },
+      {
+        "id": "cr-bk-10",
+        "hargaRp": 36000,
+        "isOutlier": false,
+        "reporterId": "dev-jj00",
+        "timestamp": "2026-10-23T09:05:00Z"
+      },
+      {
+        "id": "cr-spec-02",
+        "hargaRp": 55000,
+        "isOutlier": true,
+        "reason": "MAD Z-score > 3.0 (Spekulasi Abnormal)",
+        "reporterId": "dev-bad-01",
+        "timestamp": "2026-10-23T09:15:00Z"
+      }
+    ]
+  }
+]

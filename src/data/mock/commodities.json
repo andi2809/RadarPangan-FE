@@ -1,0 +1,47 @@
+[
+  {
+    "id": "beras_medium",
+    "name": "Beras Medium",
+    "category": "Beras",
+    "satuan": "kg",
+    "jenisAcuan": "HET",
+    "hargaAcuanRp": 13500,
+    "deskripsi": "Beras butir patah maks 25%, acuan HET Zonasi I Jawa Barat (Perbadan 5/2024)"
+  },
+  {
+    "id": "cabai_rawit_merah",
+    "name": "Cabai Rawit Merah",
+    "category": "Hortikultura",
+    "satuan": "kg",
+    "jenisAcuan": "HAP",
+    "hargaAcuanRp": 45000,
+    "deskripsi": "Cabai rawit merah segar tingkat konsumen, acuan HAP (Perbadan 12/2024)"
+  },
+  {
+    "id": "bawang_merah",
+    "name": "Bawang Merah",
+    "category": "Hortikultura",
+    "satuan": "kg",
+    "jenisAcuan": "HAP",
+    "hargaAcuanRp": 32000,
+    "deskripsi": "Bawang merah rogol kering panen, acuan HAP konsumen (Perbadan 12/2024)"
+  },
+  {
+    "id": "telur_ayam_ras",
+    "name": "Telur Ayam Ras",
+    "category": "Peternakan",
+    "satuan": "kg",
+    "jenisAcuan": "DINAMIS_MEDIAN_90H",
+    "hargaAcuanRp": 29500,
+    "deskripsi": "Telur ayam ras segar, acuan dinamis moving-median 90 hari kalender"
+  },
+  {
+    "id": "minyakita",
+    "name": "Minyakita",
+    "category": "Minyak Nabati",
+    "satuan": "liter",
+    "jenisAcuan": "HET",
+    "hargaAcuanRp": 15700,
+    "deskripsi": "Minyak goreng kemasan bantal/botol rakyat, acuan HET (Permendag 18/2024)"
+  }
+]
