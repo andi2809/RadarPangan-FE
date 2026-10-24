@@ -14,6 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
+      <head>
+        <link rel="stylesheet" href="/maplibre-gl.css" />
+      </head>
       <body className="bg-slate-950 text-slate-100 antialiased">{children}</body>
     </html>
   );

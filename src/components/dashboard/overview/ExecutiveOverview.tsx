@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import {
   Commodity,
   Region,
@@ -27,6 +28,18 @@ import {
   DollarSign
 } from 'lucide-react';
 
+const MapCanvas = dynamic(
+  () => import('../../gis/MapCanvas').then((mod) => mod.MapCanvas),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[380px] flex items-center justify-center bg-slate-950 text-slate-400 font-mono text-xs rounded-xl border border-slate-800">
+        MEMUAT PETA INDONESIA & JAWA BARAT...
+      </div>
+    )
+  }
+);
+
 interface ExecutiveOverviewProps {
   commodities: Commodity[];
   selectedCommodity: Commodity;
@@ -38,6 +51,7 @@ interface ExecutiveOverviewProps {
   onSelectRegion: (id: string) => void;
   onOpenCommandCenter: (regionId?: string) => void;
   onOpenSupplyRoute: () => void;
+  geoJson?: GeoJSON.FeatureCollection | null;
 }
 
 export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
@@ -50,7 +64,8 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
   selectedRegionId,
   onSelectRegion,
   onOpenCommandCenter,
-  onOpenSupplyRoute
+  onOpenSupplyRoute,
+  geoJson
 }) => {
   const selectedTelem = allTelemetry[selectedRegionId] || allTelemetry['32.16'] || Object.values(allTelemetry)[0];
   const isH7 = activeHorizon === 'h7';
@@ -234,272 +249,18 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
             </div>
           </div>
 
-          {/* Map Preview Graphic Area */}
-          <div className="relative my-4 flex-1 flex items-center justify-center bg-slate-950 rounded-xl overflow-hidden border border-slate-800 min-h-[320px]">
-            {/* Grid Pattern Background */}
-            <div
-              className="absolute inset-0 opacity-20 pointer-events-none"
-              style={{
-                backgroundImage: 'radial-gradient(circle at 1px 1px, #38BDF8 1px, transparent 0)',
-                backgroundSize: '24px 24px'
-              }}
+          {/* Map Preview Graphic Area (Dynamic MapLibre with Indonesia Boundaries & Jabar Risk Telemetry) */}
+          <div className="relative my-3 flex-1 flex flex-col bg-slate-950 rounded-xl overflow-hidden border border-slate-800 min-h-[380px]">
+            <MapCanvas
+              geoJson={geoJson || null}
+              allTelemetry={allTelemetry}
+              activeHorizon={activeHorizon}
+              selectedRegionId={selectedRegionId}
+              onSelectRegion={onSelectRegion}
+              mode="preview"
+              className="relative w-full h-[380px] rounded-xl overflow-hidden bg-slate-950"
+              onOpenCommandCenter={onOpenCommandCenter}
             />
-
-            {/* Stylized SVG Map of Jabar Regencies */}
-            <svg viewBox="0 0 760 380" className="w-full h-full max-h-[340px] select-none p-4 z-10">
-              <defs>
-                <filter id="glow-selected" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#38BDF8" />
-                </filter>
-              </defs>
-
-              {/* Polygons of Jabar Regencies */}
-              {/* Bekasi (Red/Critical in Cabai) */}
-              <g
-                onClick={() => onSelectRegion('32.16')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M120 70 L210 60 L230 115 L160 145 L110 115 Z"
-                  fill="#DC2626"
-                  stroke={selectedRegionId === '32.16' ? '#38BDF8' : '#7F1D1D'}
-                  strokeWidth={selectedRegionId === '32.16' ? 3 : 1.5}
-                  filter={selectedRegionId === '32.16' ? 'url(#glow-selected)' : undefined}
-                />
-                <text x="145" y="105" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Kab. Bekasi
-                </text>
-              </g>
-
-              {/* Karawang (Amber/Waspada) */}
-              <g
-                onClick={() => onSelectRegion('32.15')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M210 60 L310 65 L295 135 L230 115 Z"
-                  fill="#CA8A04"
-                  stroke={selectedRegionId === '32.15' ? '#38BDF8' : '#78350F'}
-                  strokeWidth={selectedRegionId === '32.15' ? 3 : 1.5}
-                  filter={selectedRegionId === '32.15' ? 'url(#glow-selected)' : undefined}
-                />
-                <text x="240" y="100" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Karawang
-                </text>
-              </g>
-
-              {/* Subang (Red/Rentan) */}
-              <g
-                onClick={() => onSelectRegion('32.13')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M310 65 L410 70 L385 145 L295 135 Z"
-                  fill="#DC2626"
-                  stroke={selectedRegionId === '32.13' ? '#38BDF8' : '#7F1D1D'}
-                  strokeWidth={selectedRegionId === '32.13' ? 3 : 1.5}
-                  filter={selectedRegionId === '32.13' ? 'url(#glow-selected)' : undefined}
-                />
-                <text x="335" y="105" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Subang
-                </text>
-              </g>
-
-              {/* Indramayu (Green/Surplus Beras) */}
-              <g
-                onClick={() => onSelectRegion('32.12')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M410 70 L530 85 L505 160 L385 145 Z"
-                  fill="#16A34A"
-                  stroke={selectedRegionId === '32.12' ? '#38BDF8' : '#14532D'}
-                  strokeWidth={selectedRegionId === '32.12' ? 3 : 1.5}
-                  filter={selectedRegionId === '32.12' ? 'url(#glow-selected)' : undefined}
-                />
-                <text x="440" y="115" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Indramayu
-                </text>
-              </g>
-
-              {/* Cirebon */}
-              <g
-                onClick={() => onSelectRegion('32.09')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M530 85 L620 120 L580 190 L505 160 Z"
-                  fill="#16A34A"
-                  stroke="#14532D"
-                  strokeWidth="1.5"
-                />
-                <text x="535" y="145" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Cirebon
-                </text>
-              </g>
-
-              {/* Bogor */}
-              <g
-                onClick={() => onSelectRegion('32.01')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M90 125 L160 145 L150 230 L80 195 Z"
-                  fill="#CA8A04"
-                  stroke="#78350F"
-                  strokeWidth="1.5"
-                />
-                <text x="105" y="175" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Bogor
-                </text>
-              </g>
-
-              {/* Cianjur */}
-              <g
-                onClick={() => onSelectRegion('32.03')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M160 145 L260 150 L240 250 L150 230 Z"
-                  fill="#CA8A04"
-                  stroke="#78350F"
-                  strokeWidth="1.5"
-                />
-                <text x="185" y="195" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Cianjur
-                </text>
-              </g>
-
-              {/* Bandung / Kota Bandung */}
-              <g
-                onClick={() => onSelectRegion('32.73')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M260 150 L370 155 L350 240 L240 250 Z"
-                  fill="#CA8A04"
-                  stroke={selectedRegionId === '32.73' ? '#38BDF8' : '#78350F'}
-                  strokeWidth={selectedRegionId === '32.73' ? 3 : 1.5}
-                  filter={selectedRegionId === '32.73' ? 'url(#glow-selected)' : undefined}
-                />
-                <text x="280" y="195" fill="#FFFFFF" fontSize="12" fontWeight="bold" fontFamily="monospace">
-                  Bandung
-                </text>
-              </g>
-
-              {/* Garut (Green/Surplus Cabai) */}
-              <g
-                onClick={() => onSelectRegion('32.05')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M350 240 L460 220 L440 320 L330 310 Z"
-                  fill="#16A34A"
-                  stroke={selectedRegionId === '32.05' ? '#38BDF8' : '#14532D'}
-                  strokeWidth={selectedRegionId === '32.05' ? 3 : 1.5}
-                  filter={selectedRegionId === '32.05' ? 'url(#glow-selected)' : undefined}
-                />
-                <text x="380" y="275" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Kab. Garut
-                </text>
-              </g>
-
-              {/* Tasikmalaya */}
-              <g
-                onClick={() => onSelectRegion('32.06')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M460 220 L570 210 L540 310 L440 320 Z"
-                  fill="#16A34A"
-                  stroke="#14532D"
-                  strokeWidth="1.5"
-                />
-                <text x="475" y="270" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Tasikmalaya
-                </text>
-              </g>
-
-              {/* Ciamis & Banjar */}
-              <g
-                onClick={() => onSelectRegion('32.07')}
-                className="cursor-pointer transition-transform hover:scale-[1.01]"
-              >
-                <path
-                  d="M570 210 L660 215 L630 300 L540 310 Z"
-                  fill="#16A34A"
-                  stroke="#14532D"
-                  strokeWidth="1.5"
-                />
-                <text x="585" y="260" fill="#FFFFFF" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                  Ciamis
-                </text>
-              </g>
-
-              {/* Supply Route Arrow Line: Garut -> Bekasi */}
-              <path
-                d="M 390 270 Q 250 180 160 110"
-                fill="none"
-                stroke="#38BDF8"
-                strokeWidth="3.5"
-                strokeDasharray="6,4"
-              />
-              {/* Truck Icon marker at midpoint */}
-              <circle cx="270" cy="190" r="12" fill="#0284C7" stroke="#FFFFFF" strokeWidth="2" />
-              <text x="264" y="194" fill="#FFFFFF" fontSize="10">🚚</text>
-
-              {/* Interactive Tooltip Card overlaying on Selected Region (e.g. Bekasi) */}
-              <g transform="translate(180, 40)">
-                <rect width="180" height="85" rx="8" fill="#0F172A" stroke="#334155" strokeWidth="1.5" />
-                <text x="12" y="22" fill="#FFFFFF" fontSize="12" fontWeight="bold">
-                  {selectedTelem.region.name}
-                </text>
-                <rect x="110" y="10" width="55" height="16" rx="4" fill="#7F1D1D" />
-                <text x="118" y="22" fill="#FECACA" fontSize="9" fontWeight="bold" fontFamily="monospace">
-                  RENTAN
-                </text>
-
-                <text x="12" y="42" fill="#94A3B8" fontSize="10">
-                  Harga Saat Ini:
-                </text>
-                <text x="95" y="42" fill="#FFFFFF" fontSize="10" fontWeight="bold" fontFamily="monospace">
-                  Rp {selectedTelem.currentPrice.hargaAktualRp.toLocaleString('id-ID')}
-                </text>
-
-                <text x="12" y="58" fill="#94A3B8" fontSize="10">
-                  Prediksi H+7:
-                </text>
-                <text x="95" y="58" fill="#F87171" fontSize="10" fontWeight="bold" fontFamily="monospace">
-                  Rp {selectedTelem.predictionH7.hargaPrediksiH7Rp.toLocaleString('id-ID')}
-                </text>
-
-                <text x="12" y="74" fill="#94A3B8" fontSize="10">
-                  Beban UMK:
-                </text>
-                <text x="95" y="74" fill="#38BDF8" fontSize="10" fontWeight="bold" fontFamily="monospace">
-                  {selectedTelem.affordability.umkRatioBasketPercent}%
-                </text>
-              </g>
-            </svg>
-
-            {/* Bottom-left Legend inside Map Container */}
-            <div className="absolute bottom-3 left-3 bg-slate-900/90 border border-slate-700/80 rounded-lg p-2.5 backdrop-blur-md text-[11px] font-mono text-slate-200 z-20 space-y-1">
-              <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">
-                Tingkat Kerawanan Harga
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                <span>Terkendali / Surplus (0-5%)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
-                <span>Waspada Fluktuasi (5-10%)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-sm bg-rose-600" />
-                <span>Rentan / Defisit (&gt;10%)</span>
-              </div>
-            </div>
           </div>
 
           {/* Bottom Bar: Action link to full command center */}

@@ -7,18 +7,28 @@ import crowdsourceData from '../data/mock/crowdsource.json';
 
 let cachedGeoJson: GeoJSON.FeatureCollection | null = null;
 
-export async function loadJabarGeoJson(): Promise<GeoJSON.FeatureCollection> {
+export async function loadIndonesiaGeoJson(): Promise<GeoJSON.FeatureCollection> {
   if (cachedGeoJson) return cachedGeoJson;
   try {
-    const res = await fetch('/geo/jabar-27-kabkota.geojson');
+    const res = await fetch('/geo/indonesia-kabkota.geojson');
     if (!res.ok) throw new Error(`HTTP error loading GeoJSON: ${res.status}`);
     const data = await res.json();
     cachedGeoJson = data;
     return data;
   } catch (err) {
-    console.error('Failed to fetch GeoJSON from /geo/, attempting fallback', err);
-    throw err;
+    console.error('Failed to fetch Indonesia GeoJSON from /geo/, attempting fallback to Jabar GeoJSON', err);
+    try {
+      const fallbackRes = await fetch('/geo/jabar-27-kabkota.geojson');
+      const fallbackData = await fallbackRes.json();
+      return fallbackData;
+    } catch {
+      throw err;
+    }
   }
+}
+
+export async function loadJabarGeoJson(): Promise<GeoJSON.FeatureCollection> {
+  return loadIndonesiaGeoJson();
 }
 
 export function getAllRegions(): Region[] {

@@ -59,6 +59,14 @@ export const MapLegend: React.FC<MapLegendProps> = ({ activeHorizon }) => {
             </div>
             <span className="text-slate-500">Netral</span>
           </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-sm bg-[#334155] border border-slate-600" />
+              <span className="text-slate-300">Luar Jawa Barat</span>
+            </div>
+            <span className="text-slate-400">Tanpa Data Pangan</span>
+          </div>
         </div>
 
         {/* Legend for Supply Matchmaker Routes */}

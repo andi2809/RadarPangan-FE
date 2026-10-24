@@ -1,8 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ActiveScreen } from '../../types/domain';
-import { Search, Bell, User, ExternalLink, ShieldCheck } from 'lucide-react';
+import { getCurrentSession, clearSession, SsoUser } from '../../lib/auth';
+import { Search, Bell, User, ExternalLink, ShieldCheck, LogOut, Home, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
   activeScreen: ActiveScreen;
@@ -19,11 +22,23 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   selectedRegionName
 }) => {
+  const router = useRouter();
   const isCommandCenter = activeScreen === 'command-center';
+  const [currentUser, setCurrentUser] = useState<SsoUser | null>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  useEffect(() => {
+    setCurrentUser(getCurrentSession());
+  }, []);
+
+  const handleLogout = () => {
+    clearSession();
+    router.push('/login');
+  };
 
   return (
     <header
-      className={`h-16 px-6 border-b flex items-center justify-between shrink-0 transition-colors select-none ${
+      className={`h-16 px-6 border-b flex items-center justify-between shrink-0 transition-colors select-none relative z-40 ${
         isCommandCenter
           ? 'bg-slate-900 border-slate-800 text-slate-100'
           : 'bg-white border-slate-200 text-slate-900'
@@ -32,6 +47,11 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Left: Breadcrumbs & Context Title */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+          <Link href="/" className="hover:text-sky-600 transition-colors flex items-center gap-1">
+            <Home className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Radar Pangan</span>
+          </Link>
+          <span>/</span>
           <span>Jawa Barat</span>
           <span>/</span>
           <span className="text-slate-800 dark:text-slate-200 font-semibold">
@@ -106,15 +126,59 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 ring-2 ring-white dark:ring-slate-900" />
         </button>
 
-        {/* User Admin Avatar */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
-          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
-            <User className="w-4 h-4" />
-          </div>
-          <div className="hidden xl:block text-left">
-            <div className="text-xs font-bold leading-tight">Admin TPID Jabar</div>
-            <div className="text-[10px] text-slate-400 font-mono">Biro Perekonomian</div>
-          </div>
+        {/* User Admin Avatar & SSO Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800 text-left cursor-pointer focus:outline-none"
+          >
+            <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+              <User className="w-4 h-4" />
+            </div>
+            <div className="hidden xl:block text-left">
+              <div className="text-xs font-bold leading-tight truncate max-w-[140px]">
+                {currentUser?.name || 'Admin TPID Jabar'}
+              </div>
+              <div className="text-[10px] text-slate-400 font-mono truncate max-w-[140px]">
+                {currentUser?.agency || 'Biro Perekonomian'}
+              </div>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden xl:block" />
+          </button>
+
+          {/* Dropdown Menu */}
+          {showProfileMenu && (
+            <div className="absolute right-0 top-12 w-64 rounded-xl border bg-white dark:bg-slate-900 shadow-xl border-slate-200 dark:border-slate-800 p-2 z-50 text-xs">
+              <div className="p-2 border-b border-slate-100 dark:border-slate-800 mb-1">
+                <div className="font-bold text-slate-900 dark:text-white">
+                  {currentUser?.name || 'Aparatur Sipil Negara'}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                  NIP: {currentUser?.nip || '19750814 199903 1 002'}
+                </div>
+                <div className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-mono">
+                  SSO: {currentUser?.provider?.toUpperCase() || 'JDS / SIAP'}
+                </div>
+              </div>
+
+              <Link
+                href="/"
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                onClick={() => setShowProfileMenu(false)}
+              >
+                <Home className="w-4 h-4 text-slate-400" />
+                <span>Portal Publik Radar Pangan</span>
+              </Link>
+
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-left"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Keluar (Logout SSO)</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

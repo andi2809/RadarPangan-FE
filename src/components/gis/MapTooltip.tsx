@@ -3,8 +3,14 @@
 import React from 'react';
 import { UnifiedRegionTelemetry } from '../../types/domain';
 
+export interface NonJabarInfo {
+  name: string;
+  provinceName: string;
+}
+
 interface MapTooltipProps {
   telemetry: UnifiedRegionTelemetry | null;
+  nonJabarInfo?: NonJabarInfo | null;
   x: number;
   y: number;
   visible: boolean;
@@ -13,12 +19,48 @@ interface MapTooltipProps {
 
 export const MapTooltip: React.FC<MapTooltipProps> = ({
   telemetry,
+  nonJabarInfo,
   x,
   y,
   visible,
   activeHorizon
 }) => {
-  if (!visible || !telemetry) return null;
+  if (!visible) return null;
+
+  // Tooltip for regions outside Jawa Barat
+  if (nonJabarInfo) {
+    return (
+      <div
+        className="pointer-events-none fixed z-50 transition-transform duration-75 ease-out select-none"
+        style={{
+          left: `${x + 16}px`,
+          top: `${y + 16}px`,
+          transform: 'translate3d(0, 0, 0)'
+        }}
+      >
+        <div className="w-64 rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-2xl backdrop-blur-md text-xs text-slate-200">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+            <div>
+              <div className="font-semibold text-sm text-slate-100">{nonJabarInfo.name}</div>
+              <div className="text-[11px] text-slate-400">{nonJabarInfo.provinceName}</div>
+            </div>
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium uppercase bg-slate-800 text-slate-400 border border-slate-700">
+              Luar Jabar
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-300 text-[11px] bg-slate-950/60 p-2 rounded border border-slate-800/80">
+            <span className="w-2 h-2 rounded-full bg-slate-500 shrink-0" />
+            <span>Tidak memiliki data bahan pangan</span>
+          </div>
+          <div className="text-[10px] text-slate-500 mt-2 font-mono">
+            *Pemantauan EWS aktif khusus 27 Kab/Kota Jawa Barat
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!telemetry) return null;
 
   const { region, currentPrice, predictionH7, supply, affordability } = telemetry;
   const isH7 = activeHorizon === 'h7';
