@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Radar Pangan Jabar — GIS Early Warning & Decision Support System',
+  title: 'Radar Pangan — Sistem Pemantauan Harga Pangan & Kewaspadaan Pasokan',
   description:
-    'Sistem Peringatan Dini dan Dukungan Keputusan Stabilisasi Harga Pangan Pokok Tingkat Kabupaten/Kota Jawa Barat',
+    'Platform informasi harga pangan pokok, perbandingan harga acuan pemerintah (HAP/HET), pemetaan spasial wilayah, dan pelaporan harga pasar terbuka.',
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
       <head>
         <link rel="stylesheet" href="/maplibre-gl.css" />
       </head>
-      <body className="bg-slate-950 text-slate-100 antialiased">{children}</body>
+      <body className="bg-[#f8f4e9] text-[#1e221f] antialiased">{children}</body>
     </html>
   );
 }

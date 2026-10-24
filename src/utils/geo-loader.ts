@@ -2,7 +2,6 @@ import { Region } from '../types/domain';
 import regionsData from '../data/mock/regions.json';
 import commoditiesData from '../data/mock/commodities.json';
 import telemetryData from '../data/mock/telemetry.json';
-import mbgData from '../data/mock/mbg-sourcing.json';
 import crowdsourceData from '../data/mock/crowdsource.json';
 
 let cachedGeoJson: GeoJSON.FeatureCollection | null = null;
@@ -53,10 +52,6 @@ export function getTelemetry(commodityId: string, regionId?: string) {
     return commData[regionId];
   }
   return commData;
-}
-
-export function getMbgSourcingRecommendations() {
-  return mbgData;
 }
 
 export function getCrowdsourceClusters() {

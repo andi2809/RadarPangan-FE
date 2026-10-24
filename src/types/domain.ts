@@ -55,14 +55,14 @@ export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME';
 export type SupplyStatus = 'surplus' | 'seimbang' | 'defisit';
 
 export interface Region {
-  id: string; // Kode Kemendagri e.g. "32.01", "32.73"
-  codeBps: string; // "3201", "3273"
-  name: string; // "Kab. Bandung", "Kota Bandung"
+  id: string;
+  codeBps: string;
+  name: string;
   type: 'KABUPATEN' | 'KOTA';
-  provinceId: string; // "32"
-  provinceName: string; // "Jawa Barat"
-  umk2026: number; // UMK Rp (e.g. 5,136,638)
-  garisKemiskinan: number; // Rp per kapita
+  provinceId: string;
+  provinceName: string;
+  umk2026: number;
+  garisKemiskinan: number;
   populasi: number;
   centroid: {
     lat: number;
@@ -83,7 +83,7 @@ export interface Commodity {
 export interface PriceRecord {
   regionId: string;
   commodityId: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   hargaAktualRp: number;
   hargaAcuanRp: number;
   selisihRp: number;
@@ -95,12 +95,12 @@ export interface PriceRecord {
 export interface EwsPrediction {
   regionId: string;
   commodityId: string;
-  targetDate: string; // YYYY-MM-DD H+7
-  horizonDay: number; // 7
+  targetDate: string;
+  horizonDay: number;
   hargaPrediksiH7Rp: number;
   selisihPersen: number;
   status: PriceStatus;
-  ewsScore: number; // 0 - 100
+  ewsScore: number;
   riskLevel: RiskLevel;
   confidenceLowerRp: number;
   confidenceUpperRp: number;
@@ -135,7 +135,7 @@ export interface SupplyRoute {
   estimasiWaktuJam: number;
   modeTransport: 'DARAT';
   biayaTransportEstRp: number;
-  coordinates: [number, number][]; // [lng, lat] format for MapLibre/GeoJSON
+  coordinates: [number, number][];
 }
 
 export interface CitizenReport {
@@ -154,23 +154,9 @@ export interface CitizenReport {
   createdAt: string;
 }
 
-export interface MbgSourcingRecommendation {
-  id: string;
-  sppgId: string;
-  sppgName: string;
-  targetRegionId: string;
-  targetRegionName: string;
-  commodityId: string;
-  kebutuhanTonPerBulan: number;
-  recommendedSourceRegionId: string;
-  recommendedSourceRegionName: string;
-  potensiHematPersen: number;
-  statusSourcing: 'OPTIMAL' | 'MODERATE' | 'CRITICAL';
-}
-
 export interface WhatIfParameters {
-  transportSubsidyPercent: number; // 0 - 50%
-  marketOperationTonnage: number; // 0 - 500 Ton
+  transportSubsidyPercent: number;
+  marketOperationTonnage: number;
   distributionIntervention: boolean;
 }
 
@@ -181,9 +167,9 @@ export interface UnifiedRegionTelemetry {
   predictionH7: EwsPrediction;
   supply: SupplyBalance;
   affordability: {
-    umkRatioBasketPercent: number; // % of UMK needed for monthly food basket
+    umkRatioBasketPercent: number;
     povertyBasketRatioPercent: number;
-    riskIndex: number; // 0 - 100
+    riskIndex: number;
     kategoriDayaBeli: 'TERJANGKAU' | 'RENTAN' | 'DARURAT';
     uraianBeban?: string;
   };
