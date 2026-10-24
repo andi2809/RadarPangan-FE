@@ -1,4 +1,55 @@
 export type PriceStatus = 'aman' | 'waspada' | 'kritis' | 'turun' | 'tidak_ada_data';
+export type ActiveScreen = 'overview' | 'command-center';
+export type ActiveNavTab = 'gis' | 'analytics' | 'crowdsource' | 'settings';
+
+export interface TopRiskRegionItem {
+  rank: number;
+  regionId: string;
+  name: string;
+  burdenUmkPercent: number;
+  status: PriceStatus;
+  statusLabel: string;
+  deviationPct: number;
+  currentPriceRp: number;
+  forecastPriceRp: number;
+}
+
+export interface OtherCommoditySparkline {
+  id: string;
+  name: string;
+  changePct: number;
+  isIncrease: boolean;
+  sparklinePoints: number[];
+  currentPriceRp: number;
+  unit: string;
+}
+
+export interface MarketComparisonItem {
+  commodityName: string;
+  unit: string;
+  prices: {
+    bekasi: number;
+    subang: number;
+    garut: number;
+  };
+}
+
+export interface CrisisScenario {
+  id: string;
+  name: string;
+  description: string;
+  defaultSubsidyPercent: number;
+  defaultGpmTonnage: number;
+  projectedImpactPct: number;
+}
+
+export interface KpiMetrics {
+  totalWilayah: number;
+  komoditasDipantau: number;
+  wilayahRisikoTinggi: number;
+  wilayahSurplus: number;
+  stabilitasNasionalPct: number;
+}
 export type AcuanType = 'HET' | 'HAP' | 'DINAMIS_MEDIAN_90H';
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME';
 export type SupplyStatus = 'surplus' | 'seimbang' | 'defisit';
