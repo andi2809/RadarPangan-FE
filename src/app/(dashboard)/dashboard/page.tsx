@@ -12,7 +12,7 @@ import { PriceForecastChart } from '@/components/gis/analysis/PriceForecastChart
 import { CommodityPriceTable } from '@/components/gis/detail/CommodityPriceTable';
 import { AffordabilityIndicator } from '@/components/gis/detail/AffordabilityIndicator';
 import {
-  loadJabarGeoJson,
+  loadIndonesiaGeoJson,
   getTelemetry,
   getAllRegions,
   getAllCommodities,
@@ -27,16 +27,17 @@ export default function DashboardPage() {
   const [commodity, setCommodity] = useState<string>('cabai_rawit_merah');
   const [period, setPeriod] = useState<'today' | 'forecast'>('today');
   const [selectedRegionId, setSelectedRegionId] = useState<string>('32.16'); // Default: Kab. Bekasi
+  const [viewScope, setViewScope] = useState<'jabar' | 'indonesia'>('jabar');
   const [geoJson, setGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
 
   // Load GeoJSON on mount
   useEffect(() => {
-    loadJabarGeoJson()
+    loadIndonesiaGeoJson()
       .then((data) => setGeoJson(data))
       .catch((err) => console.error('Failed to load GeoJSON in /dashboard:', err));
   }, []);
 
-  // Telemetry Mapping
+  // Telemetry Mapping for Selected Commodity
   const rawTelemetry = useMemo(
     () => getTelemetry(commodity) as Record<string, UnifiedRegionTelemetry>,
     [commodity]
@@ -58,31 +59,38 @@ export default function DashboardPage() {
 
   // Active Selected Region Data
   const activeRegionTelemetry = allTelemetry[selectedRegionId];
-  const activeRegionName = activeRegionTelemetry?.region?.name || 'Kab. Bekasi';
+  const activeRegionName =
+    activeRegionTelemetry?.region?.name ||
+    (selectedRegionId === '32.16' ? 'Kab. Bekasi' : 'Wilayah Pantauan');
 
-  const currentPriceRp = activeRegionTelemetry?.currentPrice?.hargaAktualRp || 78200;
-  const forecastPriceRp = activeRegionTelemetry?.predictionH7?.hargaPrediksiH7Rp || 88600;
-  const changePercent = activeRegionTelemetry?.predictionH7?.selisihPersen 
-    ?? activeRegionTelemetry?.currentPrice?.selisihPersen 
-    ?? 8.7;
+  const currentPriceRp = activeRegionTelemetry?.currentPrice?.hargaAktualRp || 48200;
+  const forecastPriceRp = activeRegionTelemetry?.predictionH7?.hargaPrediksiH7Rp || 50400;
+  const changePercent =
+    activeRegionTelemetry?.predictionH7?.selisihPersen ??
+    activeRegionTelemetry?.currentPrice?.selisihPersen ??
+    8.7;
 
-  const rawStatus = period === 'today' 
-    ? activeRegionTelemetry?.currentPrice?.status 
-    : activeRegionTelemetry?.predictionH7?.status;
+  const rawStatus =
+    period === 'today'
+      ? activeRegionTelemetry?.currentPrice?.status
+      : activeRegionTelemetry?.predictionH7?.status;
 
-  const riskStatus: 'TERKENDALI' | 'WASPADA' | 'KRITIS' = 
-    rawStatus === 'kritis' 
-      ? 'KRITIS' 
-      : rawStatus === 'waspada' 
-      ? 'WASPADA' 
-      : 'TERKENDALI';
+  const activeStatus: 'terkendali' | 'waspada' | 'kritis' =
+    rawStatus === 'kritis'
+      ? 'kritis'
+      : rawStatus === 'waspada'
+      ? 'waspada'
+      : 'terkendali';
+
+  const riskStatusLabel: 'KRITIS' | 'WASPADA' | 'TERKENDALI' =
+    activeStatus === 'kritis' ? 'KRITIS' : activeStatus === 'waspada' ? 'WASPADA' : 'TERKENDALI';
 
   const selectedCommodityObj = useMemo(
     () => commodities.find((c) => c.id === commodity) || commodities[1] || commodities[0],
     [commodities, commodity]
   );
 
-  // Handler for Region Selection from map or cards
+  // Handler for Region Selection
   const handleSelectRegion = useCallback((regionId: string) => {
     setSelectedRegionId(regionId);
   }, []);
@@ -101,6 +109,16 @@ export default function DashboardPage() {
         setCommodity={setCommodity}
         period={period}
         setPeriod={setPeriod}
+        selectedRegionId={selectedRegionId}
+        onSelectRegion={handleSelectRegion}
+        viewScope={viewScope}
+        onSelectViewScope={setViewScope}
+        showGisLink={true}
+        activeRegionName={activeRegionName}
+        activeStatus={activeStatus}
+        currentPriceRp={currentPriceRp}
+        forecastPriceRp={forecastPriceRp}
+        umkBurdenPercent={activeRegionTelemetry?.affordability?.umkRatioBasketPercent || 9.2}
         map={
           <GISMapCanvas
             geoJson={geoJson}
@@ -108,7 +126,7 @@ export default function DashboardPage() {
             activeHorizon={period === 'today' ? 'aktual' : 'h7'}
             selectedRegionId={selectedRegionId}
             onSelectRegion={handleSelectRegion}
-            mode="full"
+            mode="preview"
           />
         }
         insight={
@@ -118,7 +136,7 @@ export default function DashboardPage() {
             currentPrice={currentPriceRp}
             forecastPrice={forecastPriceRp}
             changePercent={changePercent}
-            risk={riskStatus}
+            risk={riskStatusLabel}
           />
         }
       />
@@ -126,7 +144,7 @@ export default function DashboardPage() {
       {/* 4. Detail Wilayah, Grafik Tren & Keterjangkauan Daya Beli */}
       <RegionDetailSection
         title={`Detail Wilayah & Analisis Keterjangkauan — ${activeRegionName}`}
-        description="Telusuri pergerakan harga, proyeksi H+7, daya beli UMK, dan risiko distribusi pangan."
+        description="Telusuri pergerakan harga, proyeksi H+7, daya beli UMK, dan rekomendasi distribusi stabilisasi pasokan pangan."
       >
         <PriceForecastChart />
         <CommodityPriceTable />
