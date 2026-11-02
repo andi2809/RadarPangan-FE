@@ -21,18 +21,58 @@ Platform ini dirancang dengan **Dual-Lens Architecture**:
   - *Smart Supply Matchmaker* (rute distribusi dari wilayah surplus terdekat ke wilayah defisit/kritis).
   - Konsensus Laporan Warga (*Dual-Source Non-Destructive* & filter outlier MAD).
 
-### Dokumentasi Lengkap
-- Konteks Teknis Inti MVP: [`../docs/From-Andi/CONTEXT_SUMMARY/TECHNICAL_PROJECT_CONTEXT.md`](../docs/From-Andi/CONTEXT_SUMMARY/TECHNICAL_PROJECT_CONTEXT.md)
-- Konteks Umum & Sitemap: [`../docs/From-Andi/CONTEXT_SUMMARY/GENERAL_PROJECT_CONTEXT.md`](../docs/From-Andi/CONTEXT_SUMMARY/GENERAL_PROJECT_CONTEXT.md)
-- Panduan Ekosistem & Demo: [`../docs/From-Andi/must-read/PANDUAN_EKOSISTEM_DAN_RUNNING.md`](../docs/From-Andi/must-read/PANDUAN_EKOSISTEM_DAN_RUNNING.md)
-- Spesifikasi Teknis Front-End: [`../docs/From-Andi/spec/FRONTEND_SPEC.md`](../docs/From-Andi/spec/FRONTEND_SPEC.md)
+---
+
+## 2. Struktur Navigasi & Sitemap Web (Bebas Redundansi)
+
+Struktur halaman aplikasi dioptimalkan sesuai ketentuan lomba untuk menghindari duplikasi fungsi dan memisahkan akses publik dari instrumen pengambil keputusan:
+
+```text
+Radar Pangan (EWS & Decision Support Stabilisasi Harga Pangan Berbasis GIS)
+│
+├── 🌐 Lensa Publik (Protokol Anti-Panic Buying: Tanpa Prediksi H+7 / Label Darurat)
+│   ├── /                     Landing Page & Peta Harga Aktual Hari Ini
+│   ├── /harga                Eksplorasi harga pangan harian & grafik riwayat publik
+│   ├── /metodologi           Transparansi rumus deterministik multi-window & rasio daya beli UMK
+│   ├── /lapor                Form partisipasi pelaporan harga pasar warga + pelacakan nomor tiket
+│   └── /login                Portal masuk Single Sign-On (Demo SSO TPID, Bapanas, & Satgas Polri)
+│
+└── 🏛️ Lensa Internal / Admin TPID & Satgas Pangan
+    ├── /dashboard            Ruang Kendali Utama GIS (5 Blok Informasi Terpadu):
+    │                         • Kanvas Peta GIS 27 Kab/Kota & Garis Panah Rute Distribusi
+    │                         • Kartu Komparasi Dual-Source (Harga Resmi vs Laporan Warga)
+    │                         • Kartu Analisis Beban Upah Minimum Daerah (UMK)
+    │                         • Grafik Deret Waktu Multi-Window & Proyeksi 7 Hari (H+7)
+    │                         • Panel Uji Juri (Upload CSV, Reset Data, & Toggle Musiman)
+    ├── /dashboard/wilayah    Halaman Terpadu Eksplorasi & Riwayat Wilayah (27 Kab/Kota Jawa Barat)
+    ├── /dashboard/laporan-warga  Meja Moderasi & Approval Tiket Warga (Dual-Source Non-Destructive)
+    ├── /dashboard/sandbox    What-If Crisis Sandbox (Simulasi Subsidi Angkut & Operasi Pasar GPM)
+    └── /dashboard/laporan    Arsip & Template Dokumen Rekomendasi Kebijakan TPID (Print-Ready PDF)
+```
+
+| Rute URL | Akses / Peran | Deskripsi & Nilai Fungsional Lomba |
+|---|---|---|
+| `/` | Publik | **Landing Page Editorial:** Memperkenalkan urgensi disparitas pangan, 4 sumber data resmi, dan peta sebaran harga terkini. |
+| `/harga` | Publik | **Eksplorasi Harga Publik:** Pemantauan harga 5 komoditas pokok di 27 Kab/Kota Jawa Barat tanpa memicu spekulasi pasar. |
+| `/metodologi` | Publik | **Transparansi Algoritma:** Penjelasan terbuka mengenai rumus deterministik, bobot EWS, dan data UMK BPS. |
+| `/lapor` | Publik | **Civic Crowdsourcing:** Partisipasi warga mencatat harga pasar riil dengan kode tiket pelacakan unik (`RP-2026-XXXX`). |
+| `/login` | Publik / Auth | **Demo SSO Kedinasan:** 4 profil instansi resmi (JDS Pemprov Jabar, SIAP ASN Jabar, Bapanas, dan Satgas Pangan POLDA Jabar). |
+| `/dashboard` | TPID / Satgas | **Executive GIS Cockpit:** Menyatukan visualisasi peringatan dini H+7, rute logistik, komparasi harga, dan panel testing juri. |
+| `/dashboard/wilayah` | TPID / Satgas | **Riwayat & Profil Wilayah:** Menggabungkan tabel peringkat 27 kabupaten/kota dan analisis deret waktu multi-window. |
+| `/dashboard/laporan-warga` | TPID / Satgas | **Moderasi Konsensus:** Verifikasi laporan warga berbasis kerumunan pasar (kuorum 10 laporan) dan filter outlier MAD. |
+| `/dashboard/sandbox` | TPID / Satgas | **Simulasi What-If:** Menguji efektivitas intervensi subsidi logistik dan operasi pasar murah sebelum anggaran dikucurkan. |
+| `/dashboard/laporan` | TPID / Satgas | **Cetak Nota Kebijakan:** Otomasi pembuatan draf surat rekomendasi kebijakan TPID siap cetak ke format PDF. |
+
+*(Catatan: Rute `/dashboard/gis` secara otomatis diarahkan ke `/dashboard`, dan `/dashboard/tren` digabungkan ke `/dashboard/wilayah` untuk memastikan efisiensi kode dan kejelasan arsitektur).*
 
 ---
 
-## 2. Cara Menjalankan Proyek Secara Lokal
+## 3. Cara Menjalankan Proyek Secara Lokal
 
 ```bash
 cd "Dashboard - Pangan Radar"
+
+# Menjalankan server pengembangan
 npm run dev
 ```
 Buka browser di [http://localhost:3000](http://localhost:3000).
