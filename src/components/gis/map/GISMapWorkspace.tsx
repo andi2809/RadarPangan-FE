@@ -22,6 +22,8 @@ export function GISMapWorkspace({
   viewScope,
   onSelectViewScope,
   showGisLink = true,
+  dataSource,
+  onSelectDataSource,
   activeRegionName,
   activeStatus,
   currentPriceRp,
@@ -42,6 +44,8 @@ export function GISMapWorkspace({
           viewScope={viewScope}
           onSelectViewScope={onSelectViewScope}
           showGisLink={showGisLink}
+          dataSource={dataSource}
+          onSelectDataSource={onSelectDataSource}
           activeRegionName={activeRegionName}
           activeStatus={activeStatus}
           currentPriceRp={currentPriceRp}

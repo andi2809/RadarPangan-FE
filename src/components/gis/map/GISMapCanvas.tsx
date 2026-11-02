@@ -14,6 +14,8 @@ export interface GISMapCanvasProps {
   simulatedStatusMap?: Record<string, PriceStatus>;
   mode?: 'full' | 'preview';
   className?: string;
+  viewScope?: 'jabar' | 'indonesia';
+  onViewScopeChange?: (scope: 'jabar' | 'indonesia') => void;
   onOpenCommandCenter?: (regionId?: string) => void;
 }
 

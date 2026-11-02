@@ -1,0 +1,35 @@
+:root {
+  --font-plex-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --font-plex-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --bg: #f8f4e9;
+  --paper: #fffdf7;
+  --paper-2: #f0ebde;
+  --ink: #202521;
+  --muted: #79796e;
+  --line: #ddd7c9;
+
+  --maroon: #67151d;
+  --maroon-dark: #4c0d15;
+  --maroon-soft: #f4e8e9;
+
+  --green: #4b9d73;
+  --green-soft: #e0f0e2;
+  --green-text: #287653;
+  --yellow: #f0c94d;
+  --yellow-soft: #f8edc9;
+  --yellow-text: #8a6212;
+  --orange: #e69b39;
+  --red: #e85b4f;
+  --red-soft: #f8ded8;
+  --red-text: #a83c32;
+  --blue: #0369a1;
+  --no-data: #cbd5e1;
+
+  --shadow: 0 12px 36px rgba(69, 39, 24, 0.055);
+  --shadow-sm: 0 4px 12px rgba(69, 39, 24, 0.04);
+  --radius: 13px;
+  --radius-sm: 8px;
+  --radius-pill: 30px;
+  --focus-ring: #67151d;
+}

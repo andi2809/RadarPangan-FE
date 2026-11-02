@@ -44,13 +44,13 @@ export const MapTooltip: React.FC<MapTooltipProps> = ({
               <div className="font-extrabold text-sm text-[#24231F]">{nonJabarInfo.name}</div>
               <div className="text-[11px] text-[#706B62]">{nonJabarInfo.provinceName}</div>
             </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#F0E5E0] text-[#74151C] border border-[#74151C]/20">
-              Nusantara
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#F1F5F9] text-[#64748B] border border-[#CBD5E1]">
+              Tanpa data
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[#706B62] text-[11px] bg-[#FBF9F4] p-2 rounded-lg border border-[#DED8CD]">
-            <span className="size-2 rounded-full bg-[#16A34A] shrink-0" />
-            <span>Terpantau dalam jaringan logistik pangan nasional</span>
+          <div className="flex items-center gap-2 text-[#706B62] text-[11px] bg-[#F8FAFC] p-2 rounded-lg border border-[#DED8CD]">
+            <span className="size-2 rounded-full bg-[#CBD5E1] shrink-0" />
+            <span>Data harga belum tersedia untuk wilayah ini</span>
           </div>
         </div>
       </div>

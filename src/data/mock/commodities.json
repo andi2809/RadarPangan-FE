@@ -1,12 +1,27 @@
 [
   {
     "id": "beras_medium",
-    "name": "Beras Medium",
+    "name": "Beras Medium (Pasar)",
     "category": "Beras",
     "satuan": "kg",
     "jenisAcuan": "HET",
     "hargaAcuanRp": 13500,
-    "deskripsi": "Beras butir patah maks 25%, acuan HET Zonasi I Jawa Barat (Perbadan 5/2024)"
+    "deskripsi": "Beras butir patah maks 25% harga transaksi pasar riil, acuan HET Zonasi I Jawa Barat",
+    "sumberDefault": "pihps",
+    "jenisHarga": "pasar",
+    "subKomoditas": "medium"
+  },
+  {
+    "id": "beras_sphp",
+    "name": "Beras SPHP Bulog (Acuan)",
+    "category": "Beras",
+    "satuan": "kg",
+    "jenisAcuan": "HET",
+    "hargaAcuanRp": 13500,
+    "deskripsi": "Beras Stabilisasi Pasokan dan Harga Pangan Bulog, acuan resmi intervensi HET",
+    "sumberDefault": "sp2kp",
+    "jenisHarga": "acuan",
+    "subKomoditas": "sphp"
   },
   {
     "id": "cabai_rawit_merah",
@@ -15,7 +30,10 @@
     "satuan": "kg",
     "jenisAcuan": "HAP",
     "hargaAcuanRp": 45000,
-    "deskripsi": "Cabai rawit merah segar tingkat konsumen, acuan HAP (Perbadan 12/2024)"
+    "deskripsi": "Cabai rawit merah segar tingkat konsumen, acuan HAP (Perbadan 12/2024)",
+    "sumberDefault": "pihps",
+    "jenisHarga": "pasar",
+    "subKomoditas": "standar"
   },
   {
     "id": "bawang_merah",
@@ -24,7 +42,10 @@
     "satuan": "kg",
     "jenisAcuan": "HAP",
     "hargaAcuanRp": 32000,
-    "deskripsi": "Bawang merah rogol kering panen, acuan HAP konsumen (Perbadan 12/2024)"
+    "deskripsi": "Bawang merah rogol kering panen, acuan HAP konsumen (Perbadan 12/2024)",
+    "sumberDefault": "pihps",
+    "jenisHarga": "pasar",
+    "subKomoditas": "standar"
   },
   {
     "id": "telur_ayam_ras",
@@ -33,15 +54,33 @@
     "satuan": "kg",
     "jenisAcuan": "DINAMIS_MEDIAN_90H",
     "hargaAcuanRp": 29500,
-    "deskripsi": "Telur ayam ras segar, acuan dinamis moving-median 90 hari kalender"
+    "deskripsi": "Telur ayam ras segar, acuan dinamis moving-median 90 hari kalender",
+    "sumberDefault": "pihps",
+    "jenisHarga": "pasar",
+    "subKomoditas": "standar"
   },
   {
     "id": "minyakita",
-    "name": "Minyakita",
+    "name": "Minyakita (Acuan HET)",
     "category": "Minyak Nabati",
     "satuan": "liter",
     "jenisAcuan": "HET",
     "hargaAcuanRp": 15700,
-    "deskripsi": "Minyak goreng kemasan bantal/botol rakyat, acuan HET (Permendag 18/2024)"
+    "deskripsi": "Minyak goreng kemasan rakyat Minyakita, pemantauan kepatuhan HET SP2KP (Permendag 18/2024)",
+    "sumberDefault": "sp2kp",
+    "jenisHarga": "acuan",
+    "subKomoditas": "standar"
+  },
+  {
+    "id": "minyak_goreng_curah",
+    "name": "Minyak Goreng Curah (Pasar)",
+    "category": "Minyak Nabati",
+    "satuan": "liter",
+    "jenisAcuan": "HAP",
+    "hargaAcuanRp": 17500,
+    "deskripsi": "Minyak goreng curah transaksi pasar bebas (PIHPS BI)",
+    "sumberDefault": "pihps",
+    "jenisHarga": "pasar",
+    "subKomoditas": "curah"
   }
 ]

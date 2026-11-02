@@ -11,14 +11,79 @@ export interface AffordabilityResult {
   uraianBeban: string;
 }
 
+export interface CommodityUmkBurdenResult {
+  umkWilayahRp: number;
+  umkRataRataJabarRp: number;
+  kebutuhanAcuanKg: number;
+  biayaKomoditasBulananRp: number;
+  rasioBebanUmkPct: number;
+  penggandaUmk: number;
+  skorTekananDayaBeli: number;
+  statusKeterjangkauan: 'Terjangkau' | 'Membebani' | 'Kritis bagi Warga Lokal';
+}
+
 // Monthly standard household consumption weight for 5 commodities (family of 4 in Jabar)
 export const MONTHLY_HOUSEHOLD_BASKET_WEIGHT = {
   beras_medium: 36, // kg per household / month (approx 9kg/capita)
   cabai_rawit_merah: 2.4, // kg
   bawang_merah: 3.2, // kg
   telur_ayam_ras: 5.0, // kg
-  minyakita: 6.0 // liter
+  minyakita: 6.0, // liter
 };
+
+// K_acuan per komoditas sesuai TECHNICAL_PROJECT_CONTEXT.md §4.C
+export const COMMODITY_REFERENCE_NEED: Record<string, number> = {
+  beras_medium: 10,
+  beras_sphp: 10,
+  cabai_rawit_merah: 2,
+  bawang_merah: 2,
+  telur_ayam_ras: 4,
+  minyakita: 4,
+  minyak_goreng_curah: 4,
+};
+
+export const AVERAGE_JABAR_UMK_RP = 3150000;
+
+export function calculateCommodityUmkBurden(
+  umkWilayahRp: number,
+  projectedPriceH7Rp: number,
+  kenaikanH7Pct: number,
+  commodityId: string,
+  umkRataRataJabarRp: number = AVERAGE_JABAR_UMK_RP
+): CommodityUmkBurdenResult {
+  const safeUmk = Math.max(1, umkWilayahRp);
+  const kebutuhanAcuanKg = COMMODITY_REFERENCE_NEED[commodityId] ?? 2;
+  const biayaKomoditasBulananRp = Math.round(projectedPriceH7Rp * kebutuhanAcuanKg);
+
+  // Rasio Beban UMK (%) = ((P_hat_{t+7} * K_acuan) / UMK_wilayah) * 100%
+  const rasioBebanUmkPct = Number(((biayaKomoditasBulananRp / safeUmk) * 100).toFixed(2));
+
+  // Skor Tekanan Daya Beli = Persentase Kenaikan H+7 * (UMK_rata_rata_jabar / UMK_wilayah)
+  const penggandaUmk = Number((umkRataRataJabarRp / safeUmk).toFixed(2));
+  const skorTekananDayaBeli = Number(
+    (Math.max(0, kenaikanH7Pct) * penggandaUmk).toFixed(2)
+  );
+
+  let statusKeterjangkauan: 'Terjangkau' | 'Membebani' | 'Kritis bagi Warga Lokal' =
+    'Terjangkau';
+
+  if (rasioBebanUmkPct >= 4.5 || skorTekananDayaBeli >= 15) {
+    statusKeterjangkauan = 'Kritis bagi Warga Lokal';
+  } else if (rasioBebanUmkPct >= 2.5 || skorTekananDayaBeli >= 7) {
+    statusKeterjangkauan = 'Membebani';
+  }
+
+  return {
+    umkWilayahRp: safeUmk,
+    umkRataRataJabarRp,
+    kebutuhanAcuanKg,
+    biayaKomoditasBulananRp,
+    rasioBebanUmkPct,
+    penggandaUmk,
+    skorTekananDayaBeli,
+    statusKeterjangkauan,
+  };
+}
 
 export function calculateAffordability(
   region: Region,
@@ -66,6 +131,6 @@ export function calculateAffordability(
     povertyBasketRatioPercent,
     kategoriDayaBeli,
     rentanIndeks,
-    uraianBeban
+    uraianBeban,
   };
 }

@@ -47,7 +47,12 @@ export function getCommodityById(id: string) {
 }
 
 export function getTelemetry(commodityId: string, regionId?: string) {
-  const commData = (telemetryData as Record<string, Record<string, any>>)[commodityId] || {};
+  let mappedId = commodityId;
+  if (commodityId === 'beras_sphp') mappedId = 'beras_medium';
+  if (commodityId === 'minyak_goreng_curah') mappedId = 'minyakita';
+
+  const commData = (telemetryData as Record<string, Record<string, any>>)[mappedId] ||
+                   (telemetryData as Record<string, Record<string, any>>)['cabai_rawit_merah'] || {};
   if (regionId) {
     return commData[regionId];
   }

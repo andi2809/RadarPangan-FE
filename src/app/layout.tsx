@@ -1,4 +1,12 @@
 import type { Metadata } from 'next';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-sans/700.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/ibm-plex-mono/600.css';
+import './tokens.css';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -13,11 +21,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id">
+    <html lang="id" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/maplibre-gl.css" />
       </head>
-      <body className="bg-[#f8f4e9] text-[#1e221f] antialiased">{children}</body>
+      <body
+        className="bg-[#f8f4e9] text-[#1e221f] antialiased"
+        suppressHydrationWarning
+      >
+        {children}
+      </body>
     </html>
   );
 }

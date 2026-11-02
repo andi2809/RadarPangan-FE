@@ -1,5 +1,4 @@
 import type { LucideIcon } from "lucide-react";
-import { Map, Wheat, AlertTriangle, ShieldCheck } from "lucide-react";
 
 type GISStatCardProps = {
   label: string;
@@ -10,7 +9,7 @@ type GISStatCardProps = {
 };
 
 const tones = {
-  default: "text-[#74151C] bg-[#F0E5E0]",
+  default: "text-[#67151D] bg-[#F0E5E0]",
   warning: "text-[#A96B08] bg-[#FBF0D7]",
   success: "text-[#287653] bg-[#E3F0E7]",
 };
@@ -50,36 +49,7 @@ export type StatItem = {
   tone?: "default" | "warning" | "success";
 };
 
-const defaultStats: StatItem[] = [
-  {
-    label: "Total Wilayah",
-    value: "514",
-    description: "Kabupaten / kota",
-    icon: Map,
-  },
-  {
-    label: "Komoditas",
-    value: "12",
-    description: "Bahan pokok",
-    icon: Wheat,
-  },
-  {
-    label: "Risiko Tinggi",
-    value: "48",
-    description: "Wilayah terpantau",
-    icon: AlertTriangle,
-    tone: "warning" as const,
-  },
-  {
-    label: "Wilayah Surplus",
-    value: "97",
-    description: "Wilayah terpantau",
-    icon: ShieldCheck,
-    tone: "success" as const,
-  },
-];
-
-export function GISStatsSection({ stats = defaultStats }: { stats?: StatItem[] }) {
+export function GISStatsSection({ stats }: { stats: StatItem[] }) {
   return (
     <section className="grid grid-cols-2 gap-y-5 border-y border-[#DED8CD] py-5 md:grid-cols-4 md:gap-0">
       {stats.map((stat) => (

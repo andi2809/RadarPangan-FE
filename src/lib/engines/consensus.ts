@@ -42,12 +42,17 @@ export function evaluateCrowdsourceConsensus(
     };
   }
 
-  // 1. Calculate raw median
-  const prices = reports.map((r) => r.hargaRp).sort((a, b) => a - b);
+  // 1. Satu perangkat = satu suara per komoditas per jendela waktu
+  const uniqueReports = Array.from(
+    new Map(reports.map((report) => [report.reporterId, report])).values()
+  );
+
+  // 2. Calculate raw median from independent reports
+  const prices = uniqueReports.map((r) => r.hargaRp).sort((a, b) => a - b);
   const mid = Math.floor(prices.length / 2);
   const rawMedian = prices.length % 2 !== 0 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
 
-  // 2. Compute Median Absolute Deviation (MAD)
+  // 3. Compute Median Absolute Deviation (MAD)
   const absoluteDeviations = prices.map((p) => Math.abs(p - rawMedian)).sort((a, b) => a - b);
   const mad =
     absoluteDeviations.length % 2 !== 0
@@ -57,14 +62,17 @@ export function evaluateCrowdsourceConsensus(
   // Avoid division by zero
   const safeMad = Math.max(100, mad);
 
-  // 3. Flag outliers using Modified Z-score: M_i = 0.6745 * |x_i - median| / MAD
-  const processedReports = reports.map((r) => {
+  // 4. Buang outlier: modified z-score > 3,5 atau deviasi > 10% dari median klaster
+  const processedReports = uniqueReports.map((r) => {
     const modZ = (0.6745 * Math.abs(r.hargaRp - rawMedian)) / safeMad;
-    const isOutlier = modZ > 3.0 || r.hargaRp > rawMedian * 1.35 || r.hargaRp < rawMedian * 0.65;
+    const deviationRatio = Math.abs(r.hargaRp - rawMedian) / rawMedian;
+    const isOutlier = modZ > 3.5 || deviationRatio > 0.1;
     return {
       ...r,
       isOutlier,
-      reason: isOutlier ? `Deviasi Z-Score ${modZ.toFixed(1)} > 3.0 (Anomali Spekulan)` : undefined
+      reason: isOutlier
+        ? `Deviasi ${(deviationRatio * 100).toFixed(1)}% / Z-Score ${modZ.toFixed(1)} melewati batas konsensus`
+        : undefined
     };
   });
 

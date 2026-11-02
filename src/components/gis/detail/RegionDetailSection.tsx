@@ -14,7 +14,7 @@ export function RegionDetailSection({
   return (
     <section className="space-y-5 border-t border-[#DED8CD] pt-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-[#74151C]">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#67151D]">
           Eksplorasi Wilayah
         </p>
 

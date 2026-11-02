@@ -53,6 +53,18 @@ export interface KpiMetrics {
 export type AcuanType = 'HET' | 'HAP' | 'DINAMIS_MEDIAN_90H';
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME';
 export type SupplyStatus = 'surplus' | 'seimbang' | 'defisit';
+export type DataSource = 'pihps' | 'sp2kp' | 'gabungan';
+export type PriceType = 'pasar' | 'acuan';
+
+export type CommodityId =
+  | 'beras_medium'
+  | 'beras_sphp'
+  | 'cabai_rawit_merah'
+  | 'bawang_merah'
+  | 'telur_ayam_ras'
+  | 'minyakita'
+  | 'minyak_goreng_curah'
+  | (string & {});
 
 export interface Region {
   id: string;
@@ -71,13 +83,16 @@ export interface Region {
 }
 
 export interface Commodity {
-  id: 'beras_medium' | 'cabai_rawit_merah' | 'bawang_merah' | 'telur_ayam_ras' | 'minyakita';
+  id: CommodityId;
   name: string;
   category: string;
   satuan: 'kg' | 'liter';
   jenisAcuan: AcuanType;
   hargaAcuanRp: number;
   deskripsi: string;
+  sumberDefault?: DataSource;
+  jenisHarga?: PriceType;
+  subKomoditas?: 'medium' | 'sphp' | 'curah' | 'standar';
 }
 
 export interface PriceRecord {
@@ -90,6 +105,8 @@ export interface PriceRecord {
   selisihPersen: number;
   status: PriceStatus;
   movingAvg7d: number;
+  sumber?: DataSource;
+  jenisHarga?: PriceType;
 }
 
 export interface EwsPrediction {
@@ -166,6 +183,8 @@ export interface UnifiedRegionTelemetry {
   history14d: { date: string; hargaRp: number }[];
   predictionH7: EwsPrediction;
   supply: SupplyBalance;
+  sumber?: DataSource;
+  jenisHarga?: PriceType;
   affordability: {
     umkRatioBasketPercent: number;
     povertyBasketRatioPercent: number;

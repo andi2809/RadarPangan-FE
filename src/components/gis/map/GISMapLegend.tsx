@@ -2,22 +2,27 @@ import React from "react";
 
 const legend = [
   {
-    color: "#27815A",
-    title: "Terkendali / Surplus",
-    range: "0–5%",
+    color: "#4B9D73",
+    title: "Aman",
+    range: "±5%",
   },
   {
-    color: "#E9B949",
+    color: "#F0C94D",
     title: "Waspada",
-    range: "5–10%",
+    range: "+5% s.d. +10%",
   },
   {
-    color: "#DC4840",
-    title: "Rentan / Defisit",
-    range: ">10%",
+    color: "#E85B4F",
+    title: "Kritis / Defisit",
+    range: "> +10%",
   },
   {
-    color: "#A8A29E",
+    color: "#0369A1",
+    title: "Turun / Surplus",
+    range: "< −5%",
+  },
+  {
+    color: "#CBD5E1",
     title: "Tidak ada data",
     range: "N/A",
   },

@@ -1,23 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { GISLayout } from '@/components/gis/layout/GISLayout';
-import { FlaskConical, Sliders, Play, RotateCcw, TrendingDown, Layers, Truck, DollarSign } from 'lucide-react';
+import { FlaskConical, Sliders, RotateCcw, TrendingDown, Layers, Truck, DollarSign } from 'lucide-react';
+import { getAllRegions, getTelemetry } from '@/utils/geo-loader';
+import { simulateIntervention } from '@/lib/engines/what-if';
+import type { UnifiedRegionTelemetry } from '@/types/domain';
+
+const numberFormat = new Intl.NumberFormat('id-ID');
 
 export default function SandboxPage() {
   const [subsidyPercent, setSubsidyPercent] = useState<number>(25);
   const [tonnageGpm, setTonnageGpm] = useState<number>(80);
   const [routeIntervention, setRouteIntervention] = useState<boolean>(true);
 
-  // Derived simulation calculations
-  const baselinePriceRp = 48200;
-  const subsidyImpact = (subsidyPercent / 100) * 0.08; // up to 4% reduction
-  const gpmImpact = (tonnageGpm / 500) * 0.12; // up to 12% reduction
-  const routeImpact = routeIntervention ? 0.035 : 0; // 3.5% reduction
-  const totalReductionPct = (subsidyImpact + gpmImpact + routeImpact) * 100;
+  const baseTelemetry = useMemo<UnifiedRegionTelemetry | null>(() => {
+    const region = getAllRegions().find((item) => item.id === '32.16');
+    const telemetry = getTelemetry('cabai_rawit_merah', '32.16') as UnifiedRegionTelemetry | null;
+    if (!region || !telemetry) return null;
+    return { ...telemetry, region };
+  }, []);
 
-  const simulatedPriceRp = Math.round(baselinePriceRp * (1 - totalReductionPct / 100));
+  const simulation = useMemo(() => {
+    if (!baseTelemetry) return null;
+    return simulateIntervention({
+      baseTelemetry,
+      transportSubsidyPercent: subsidyPercent,
+      marketOperationTonnage: tonnageGpm,
+      distributionIntervention: routeIntervention,
+    });
+  }, [baseTelemetry, subsidyPercent, tonnageGpm, routeIntervention]);
+
+  const baselinePriceRp = baseTelemetry?.currentPrice.hargaAktualRp ?? 0;
+  const simulatedPriceRp = simulation?.simulatedPriceRp ?? baselinePriceRp;
+  const totalReductionPct = simulation?.reductionPercentage ?? 0;
   const estimatedCostRp = Math.round(
     (subsidyPercent * 1500000) + (tonnageGpm * 120000) + (routeIntervention ? 18000000 : 0)
   );
@@ -33,7 +50,7 @@ export default function SandboxPage() {
       {/* Header */}
       <section className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end border-b border-[#DED8CD] pb-6">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#74151C]">
+          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#67151D]">
             <FlaskConical size={15} />
             What-If Sandbox & Dukungan Keputusan (DSS)
           </div>
@@ -47,7 +64,7 @@ export default function SandboxPage() {
 
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#74151C] text-white text-xs font-bold hover:bg-[#580F15] transition shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#67151D] text-white text-xs font-bold hover:bg-[#4C0D15] transition shadow-sm"
         >
           <Layers size={14} />
           <span>Kembali ke Peta Spasial</span>
@@ -60,12 +77,12 @@ export default function SandboxPage() {
         <div className="rounded-xl border border-[#DED8CD] bg-white p-6 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-[#F0ECE4] pb-3">
             <h3 className="text-sm font-extrabold text-[#24231F] flex items-center gap-2">
-              <Sliders size={16} className="text-[#74151C]" />
+              <Sliders size={16} className="text-[#67151D]" />
               Parameter Intervensi Kebijakan
             </h3>
             <button
               onClick={handleReset}
-              className="text-xs font-bold text-[#706B62] hover:text-[#74151C] flex items-center gap-1"
+              className="text-xs font-bold text-[#706B62] hover:text-[#67151D] flex items-center gap-1"
             >
               <RotateCcw size={12} />
               <span>Reset</span>
@@ -76,7 +93,7 @@ export default function SandboxPage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="font-bold text-[#24231F]">Subsidi Ongkos Angkut Logistik</span>
-              <span className="font-mono font-bold text-[#74151C] text-sm">{subsidyPercent}%</span>
+              <span className="font-mono font-bold text-[#67151D] text-sm">{subsidyPercent}%</span>
             </div>
             <input
               type="range"
@@ -85,7 +102,7 @@ export default function SandboxPage() {
               step={5}
               value={subsidyPercent}
               onChange={(e) => setSubsidyPercent(Number(e.target.value))}
-              className="w-full accent-[#74151C] cursor-pointer"
+              className="w-full accent-[#67151D] cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-[#898277]">
               <span>0% (Mandiri Pasar)</span>
@@ -98,7 +115,7 @@ export default function SandboxPage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="font-bold text-[#24231F]">Alokasi Pasokan Gerakan Pangan Murah (GPM)</span>
-              <span className="font-mono font-bold text-[#74151C] text-sm">{tonnageGpm} Ton</span>
+              <span className="font-mono font-bold text-[#67151D] text-sm">{tonnageGpm} Ton</span>
             </div>
             <input
               type="range"
@@ -107,7 +124,7 @@ export default function SandboxPage() {
               step={10}
               value={tonnageGpm}
               onChange={(e) => setTonnageGpm(Number(e.target.value))}
-              className="w-full accent-[#74151C] cursor-pointer"
+              className="w-full accent-[#67151D] cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-[#898277]">
               <span>0 Ton</span>
@@ -131,7 +148,7 @@ export default function SandboxPage() {
                 type="checkbox"
                 checked={routeIntervention}
                 onChange={(e) => setRouteIntervention(e.target.checked)}
-                className="size-5 accent-[#74151C] cursor-pointer"
+                className="size-5 accent-[#67151D] cursor-pointer"
               />
             </label>
           </div>
@@ -144,7 +161,7 @@ export default function SandboxPage() {
               Hasil Prediksi & Estimasi Dampak Pasar
             </h3>
             <p className="text-xs text-[#706B62] mt-0.5">
-              Simulasi pergerakan harga komoditas Cabai Rawit Merah (Kab. Bekasi).
+              Simulasi pergerakan harga Cabai Rawit Merah di Kab. Bekasi. Hasil bersifat simulasi, bukan data nyata.
             </p>
           </div>
 
@@ -164,14 +181,14 @@ export default function SandboxPage() {
               <div>
                 <span className="text-[11px] text-[#4D6655] font-sans block">Harga Saat Ini:</span>
                 <span className="text-lg font-bold text-[#24231F] line-through opacity-70">
-                  Rp {baselinePriceRp.toLocaleString('id-ID')}
+                  Rp {numberFormat.format(baselinePriceRp)}
                 </span>
               </div>
 
               <div>
                 <span className="text-[11px] text-[#4D6655] font-sans block">Hasil Simulasi Intervensi:</span>
                 <span className="text-2xl font-extrabold text-[#27815A]">
-                  Rp {simulatedPriceRp.toLocaleString('id-ID')}
+                  Rp {numberFormat.format(simulatedPriceRp)}
                 </span>
               </div>
             </div>
@@ -181,11 +198,11 @@ export default function SandboxPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 rounded-xl border border-[#DED8CD] bg-[#FBF9F4]">
               <div className="flex items-center gap-1.5 text-xs text-[#706B62] font-semibold">
-                <DollarSign size={14} className="text-[#74151C]" />
+                <DollarSign size={14} className="text-[#67151D]" />
                 <span>Estimasi Biaya APBD</span>
               </div>
               <p className="mt-2 font-mono text-xl font-extrabold text-[#24231F]">
-                Rp {estimatedCostRp.toLocaleString('id-ID')}
+                Rp {numberFormat.format(estimatedCostRp)}
               </p>
               <p className="text-[10px] text-[#898277] mt-0.5">Termasuk subsidi angkut & logistik</p>
             </div>
@@ -196,11 +213,21 @@ export default function SandboxPage() {
                 <span>Status Daya Beli UMK</span>
               </div>
               <p className="mt-2 font-mono text-xl font-extrabold text-[#27815A]">
-                {simulatedPriceRp < 45000 ? 'TERJANGKAU' : 'TERKENDALI'}
+                {baseTelemetry?.affordability.kategoriDayaBeli ?? 'TANPA DATA'}
               </p>
-              <p className="text-[10px] text-[#898277] mt-0.5">Beban UMK turun ke 7.1%</p>
+              <p className="text-[10px] text-[#898277] mt-0.5">
+                {simulation
+                  ? `Skor EWS ${baseTelemetry?.predictionH7.ewsScore ?? '—'} → ${simulation.simulatedEwsScore}`
+                  : 'Data wilayah belum tersedia'}
+              </p>
             </div>
           </div>
+
+          {simulation ? (
+            <p className="border-t border-[#F0ECE4] pt-3 text-[11px] leading-5 text-[#706B62]">
+              {simulation.keteranganEfek}
+            </p>
+          ) : null}
         </div>
       </div>
     </GISLayout>

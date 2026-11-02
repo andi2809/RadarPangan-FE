@@ -6,7 +6,7 @@ import { AlertCircle, ShieldAlert, CheckCircle2, TrendingUp, Info } from "lucide
 export interface GISMapSectionProps extends GISMapToolbarProps {
   map: React.ReactNode;
   activeRegionName?: string;
-  activeStatus?: "terkendali" | "waspada" | "kritis";
+  activeStatus?: "terkendali" | "waspada" | "kritis" | "tanpa_data";
   currentPriceRp?: number;
   forecastPriceRp?: number;
   umkBurdenPercent?: number;
@@ -24,6 +24,8 @@ export function GISMapSection({
   viewScope,
   onSelectViewScope,
   showGisLink = true,
+  dataSource = "pihps",
+  onSelectDataSource,
   activeRegionName = "Kab. Bekasi",
   activeStatus = "kritis",
   currentPriceRp = 48200,
@@ -32,8 +34,16 @@ export function GISMapSection({
 }: GISMapSectionProps) {
   const isKritis = activeStatus === "kritis";
   const isWaspada = activeStatus === "waspada";
+  const isTanpaData = activeStatus === "tanpa_data";
 
-  const statusConfig = isKritis
+  const statusConfig = isTanpaData
+    ? {
+        label: "TANPA DATA",
+        badgeClass: "bg-[#F1F5F9] text-[#64748B] border-[#CBD5E1]",
+        icon: Info,
+        summary: "Data harga belum tersedia untuk wilayah ini. Tidak ada status yang ditebak.",
+      }
+    : isKritis
     ? {
         label: "KRITIS — EWS LEVEL 3",
         badgeClass: "bg-[#FBE7E4] text-[#DC4840] border-[#DC4840]/30",
@@ -70,6 +80,8 @@ export function GISMapSection({
           viewScope={viewScope}
           onSelectViewScope={onSelectViewScope}
           showGisLink={showGisLink}
+          dataSource={dataSource}
+          onSelectDataSource={onSelectDataSource}
         />
       </div>
 

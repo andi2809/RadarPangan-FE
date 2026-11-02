@@ -1,11 +1,15 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import Link from 'next/link';
 import * as maplibregl from 'maplibre-gl';
 import { UnifiedRegionTelemetry, SupplyRoute, PriceStatus } from '../../types/domain';
 import { MapTooltip, NonJabarInfo } from './MapTooltip';
-import { MapLegend } from './MapLegend';
-import { Maximize2, Compass, Navigation, MapPin } from 'lucide-react';
+import { Compass, Navigation, MapPin, Truck } from 'lucide-react';
+
+if (typeof window !== 'undefined' && typeof maplibregl.setWorkerUrl === 'function') {
+  maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
+}
 
 interface MapCanvasProps {
   geoJson: GeoJSON.FeatureCollection | null;
@@ -17,6 +21,8 @@ interface MapCanvasProps {
   simulatedStatusMap?: Record<string, PriceStatus>;
   mode?: 'full' | 'preview';
   className?: string;
+  viewScope?: 'jabar' | 'indonesia';
+  onViewScopeChange?: (scope: 'jabar' | 'indonesia') => void;
   onOpenCommandCenter?: (regionId?: string) => void;
 }
 
@@ -30,12 +36,24 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   simulatedStatusMap = {},
   mode = 'full',
   className,
+  viewScope = 'jabar',
+  onViewScopeChange,
   onOpenCommandCenter,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const allTelemetryRef = useRef(allTelemetry);
+  const onSelectRegionRef = useRef(onSelectRegion);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [activeViewScope, setActiveViewScope] = useState<'jabar' | 'indonesia' | 'user'>('jabar');
+
+  useEffect(() => {
+    allTelemetryRef.current = allTelemetry;
+  }, [allTelemetry]);
+
+  useEffect(() => {
+    onSelectRegionRef.current = onSelectRegion;
+  }, [onSelectRegion]);
+  const [activeViewScope, setActiveViewScope] = useState<'jabar' | 'indonesia' | 'user'>(viewScope);
   const [isGeolocating, setIsGeolocating] = useState(false);
   const [internalGeoJson, setInternalGeoJson] = useState<GeoJSON.FeatureCollection | null>(geoJson);
 
@@ -84,39 +102,38 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     visible: false,
   });
 
-  // Color mapping based on EWS status
+  // Color mapping based on EWS status (warna kanonik DESIGN_GUIDELINES)
   const getColorForStatus = useCallback((status?: string) => {
     switch (status) {
       case 'kritis':
-        return '#DC2626'; // Vibrant Red (Rentan / Defisit >10%)
+        return '#E85B4F';
       case 'waspada':
-        return '#EAB308'; // Warm Amber/Yellow (Waspada Fluktuasi 5-10%)
+        return '#F0C94D';
       case 'turun':
-        return '#2563EB'; // Royal Blue (Deflasi / Pasokan Melimpah)
+        return '#0369A1';
       case 'aman':
-        return '#16A34A'; // Emerald Green (Terkendali / Surplus 0-5%)
+        return '#4B9D73';
+      case 'tidak_ada_data':
       default:
-        return '#16A34A'; // Default to controlled green
+        return '#CBD5E1';
     }
   }, []);
 
-  // Deterministic fallback EWS status for Indonesian provinces
-  const getNationalStatus = useCallback((provinceId: string, id: string): PriceStatus => {
-    const cleanId = (id || '').replace(/\D/g, '');
-    const num = parseInt(cleanId || '1', 10);
-    // Eastern Indonesia has higher logistics disparity
-    if (['81', '82', '91', '92', '94', '95', '96'].includes(provinceId)) return 'kritis';
-    // Java surplus areas
-    if (['33', '35'].includes(provinceId)) return num % 4 === 0 ? 'waspada' : 'aman';
-    // Urban centers (DKI, Banten)
-    if (['31', '36'].includes(provinceId)) return num % 2 === 0 ? 'kritis' : 'waspada';
-    // General provinces
-    return num % 5 === 0 ? 'kritis' : num % 3 === 0 ? 'waspada' : 'aman';
-  }, []);
+  // Wilayah di luar cakupan data demo tidak boleh diberi status tebakan.
+  const getNationalStatus = useCallback((): PriceStatus => 'tidak_ada_data', []);
 
   // Initialize MapLibre
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
+
+    if (typeof maplibregl.setWorkerUrl === 'function') {
+      maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
+    }
+
+    const esriTileUrl =
+      mode === 'full'
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+        : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -124,15 +141,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         version: 8,
         glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
         sources: {
-          'osm-tiles': {
+          'esri-tiles': {
             type: 'raster',
-            tiles: [
-              'https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-              'https://b.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-              'https://c.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
-            ],
+            tiles: [esriTileUrl],
             tileSize: 256,
-            attribution: '&copy; CartoDB &copy; OpenStreetMap',
+            attribution: '&copy; Esri &copy; OpenStreetMap',
           },
         },
         layers: [
@@ -140,17 +153,17 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
             id: 'background',
             type: 'background',
             paint: {
-              'background-color': '#F4EFE6', // Warm paper basemap
+              'background-color': mode === 'full' ? '#0F172A' : '#F4EFE6', // Clean background
             },
           },
           {
-            id: 'osm-base',
+            id: 'esri-base',
             type: 'raster',
-            source: 'osm-tiles',
+            source: 'esri-tiles',
             minzoom: 0,
             maxzoom: 19,
             paint: {
-              'raster-opacity': 0.7,
+              'raster-opacity': mode === 'full' ? 0.9 : 0.65,
             },
           },
         ],
@@ -181,6 +194,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const handleFlyToIndonesia = useCallback(() => {
     if (!mapRef.current) return;
     setActiveViewScope('indonesia');
+    onViewScopeChange?.('indonesia');
     mapRef.current.flyTo({
       center: [118.0149, -2.5489],
       zoom: mode === 'preview' ? 4.4 : 4.8,
@@ -188,12 +202,13 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       duration: 1200,
       essential: true,
     });
-  }, [mode]);
+  }, [mode, onViewScopeChange]);
 
   // View switch: Fly to Jawa Barat
   const handleFlyToJabar = useCallback(() => {
     if (!mapRef.current) return;
     setActiveViewScope('jabar');
+    onViewScopeChange?.('jabar');
     mapRef.current.flyTo({
       center: [107.6191, -6.9175],
       zoom: mode === 'preview' ? 7.8 : 8.2,
@@ -201,7 +216,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       duration: 1000,
       essential: true,
     });
-  }, [mode]);
+  }, [mode, onViewScopeChange]);
 
   // View switch: Geolocate
   const handleGeolocate = useCallback(() => {
@@ -234,6 +249,12 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       { timeout: 5000 }
     );
   }, [handleFlyToIndonesia, handleFlyToJabar]);
+
+  // Sinkronkan pilihan scope dari toolbar dengan kamera peta
+  useEffect(() => {
+    if (viewScope === 'indonesia') handleFlyToIndonesia();
+    else handleFlyToJabar();
+  }, [viewScope, handleFlyToIndonesia, handleFlyToJabar]);
 
   // Center camera when selectedRegionId changes
   useEffect(() => {
@@ -277,9 +298,9 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
       if (isJabar) {
         const baseStatus = isH7 ? telem?.predictionH7?.status : telem?.currentPrice?.status;
-        effectiveStatus = (simulatedStatusMap[regId] || baseStatus || 'waspada') as PriceStatus;
+        effectiveStatus = (simulatedStatusMap[regId] || baseStatus || 'tidak_ada_data') as PriceStatus;
       } else {
-        effectiveStatus = getNationalStatus(p.provinceId || '', regId);
+        effectiveStatus = getNationalStatus();
       }
 
       const fillColor = getColorForStatus(effectiveStatus);
@@ -340,7 +361,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           'line-color': [
             'case',
             ['boolean', ['get', 'isSelected'], false],
-            '#74151C', // Selected region highlighted in deep burgundy
+            '#67151D', // Selected region highlighted in deep burgundy
             '#FFFFFF', // Crisp, prominent white boundary line between all kabupaten/kota
           ],
           'line-width': [
@@ -390,7 +411,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         const regId = feature.properties?.id;
 
         map.getCanvas().style.cursor = 'pointer';
-        const telem = allTelemetry[regId];
+        const telem = allTelemetryRef.current[regId];
 
         setTooltipData({
           telemetry: telem || null,
@@ -417,7 +438,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         const feature = e.features[0];
         const regId = feature.properties?.id;
         if (regId) {
-          onSelectRegion(regId);
+          onSelectRegionRef.current(regId);
         }
       });
     }
@@ -432,6 +453,128 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     getNationalStatus,
     onSelectRegion,
   ]);
+
+  // Render Supply Matchmaker Distribution Routes (Surplus -> Defisit)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const lineFeatures: GeoJSON.Feature[] = activeSupplyRoutes.map((route, idx) => ({
+      type: 'Feature',
+      properties: {
+        id: route.id,
+        rank: idx + 1,
+        sourceName: route.sourceRegionName,
+        targetName: route.targetRegionName,
+        jarakKm: route.jarakKm,
+        isPrimary: idx === 0,
+      },
+      geometry: {
+        type: 'LineString',
+        coordinates: route.coordinates,
+      },
+    }));
+
+    const pointFeatures: GeoJSON.Feature[] = [];
+    activeSupplyRoutes.forEach((route, idx) => {
+      if (route.coordinates.length >= 2) {
+        const start = route.coordinates[0];
+        const end = route.coordinates[route.coordinates.length - 1];
+        pointFeatures.push({
+          type: 'Feature',
+          properties: {
+            role: 'origin',
+            label: `Pemasok: ${route.sourceRegionName}`,
+            isPrimary: idx === 0,
+          },
+          geometry: { type: 'Point', coordinates: start },
+        });
+        if (idx === 0) {
+          pointFeatures.push({
+            type: 'Feature',
+            properties: {
+              role: 'destination',
+              label: `Tujuan: ${route.targetRegionName}`,
+              isPrimary: true,
+            },
+            geometry: { type: 'Point', coordinates: end },
+          });
+        }
+      }
+    });
+
+    const routeGeoJson: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: lineFeatures,
+    };
+
+    const pointGeoJson: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: pointFeatures,
+    };
+
+    const routeSource = map.getSource('supply-routes-source') as maplibregl.GeoJSONSource | undefined;
+    if (routeSource) {
+      routeSource.setData(routeGeoJson);
+    } else {
+      map.addSource('supply-routes-source', {
+        type: 'geojson',
+        data: routeGeoJson,
+      });
+
+      map.addLayer({
+        id: 'supply-routes-casing',
+        type: 'line',
+        source: 'supply-routes-source',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#FFFDF7',
+          'line-width': ['case', ['boolean', ['get', 'isPrimary'], false], 6, 4],
+          'line-opacity': 0.9,
+        },
+      });
+
+      map.addLayer({
+        id: 'supply-routes-line',
+        type: 'line',
+        source: 'supply-routes-source',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ['case', ['boolean', ['get', 'isPrimary'], false], '#67151D', '#287653'],
+          'line-width': ['case', ['boolean', ['get', 'isPrimary'], false], 3.2, 2.2],
+          'line-dasharray': [2, 1.5],
+          'line-opacity': 0.95,
+        },
+      });
+    }
+
+    const pointSource = map.getSource('supply-points-source') as maplibregl.GeoJSONSource | undefined;
+    if (pointSource) {
+      pointSource.setData(pointGeoJson);
+    } else {
+      map.addSource('supply-points-source', {
+        type: 'geojson',
+        data: pointGeoJson,
+      });
+
+      map.addLayer({
+        id: 'supply-points-circle',
+        type: 'circle',
+        source: 'supply-points-source',
+        paint: {
+          'circle-radius': ['case', ['==', ['get', 'role'], 'destination'], 7, 6],
+          'circle-color': [
+            'case',
+            ['==', ['get', 'role'], 'destination'],
+            '#E85B4F',
+            '#287653',
+          ],
+          'circle-stroke-color': '#FFFDF7',
+          'circle-stroke-width': 2,
+        },
+      });
+    }
+  }, [activeSupplyRoutes, mapLoaded]);
 
   const containerClasses =
     className ||
@@ -451,12 +594,12 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           onClick={handleFlyToJabar}
           className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 text-[11px] font-bold ${
             activeViewScope === 'jabar'
-              ? 'bg-[#74151C] text-white shadow-sm'
+              ? 'bg-[#67151D] text-white shadow-sm'
               : 'text-[#625E56] hover:bg-[#F0ECE4]'
           }`}
           title="Fokus Wilayah Jawa Barat"
         >
-          <span>📍</span>
+          <MapPin size={12} />
           <span>Jawa Barat</span>
         </button>
 
@@ -465,12 +608,12 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           onClick={handleFlyToIndonesia}
           className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 text-[11px] font-bold ${
             activeViewScope === 'indonesia'
-              ? 'bg-[#74151C] text-white shadow-sm'
+              ? 'bg-[#67151D] text-white shadow-sm'
               : 'text-[#625E56] hover:bg-[#F0ECE4]'
           }`}
           title="Seluruh Nusantara (38 Provinsi)"
         >
-          <span>🇮🇩</span>
+          <Navigation size={12} />
           <span>Nusantara</span>
         </button>
 
@@ -478,7 +621,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           type="button"
           onClick={handleGeolocate}
           className={`px-2 py-1 rounded-md transition-all flex items-center gap-1 text-[11px] text-[#625E56] hover:bg-[#F0ECE4] ${
-            isGeolocating ? 'animate-pulse text-[#74151C]' : ''
+            isGeolocating ? 'animate-pulse text-[#67151D]' : ''
           }`}
           title="Pusatkan Lokasi Saya"
         >
@@ -486,9 +629,23 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         </button>
       </div>
 
+      {/* Top-Right: Active Supply Route HUD Badge */}
+      {activeSupplyRoutes.length > 0 && (
+        <div className="absolute top-3 right-3 z-20 max-w-xs rounded-lg border border-[#DED8CD] bg-[#FFFDF7]/95 px-3 py-2 text-[11px] text-[#24231F] shadow-md backdrop-blur-md">
+          <div className="flex items-center gap-1.5 font-bold text-[#67151D]">
+            <Truck size={13} className="text-[#287653]" />
+            <span>Rute Rekomendasi Pasokan</span>
+          </div>
+          <p className="mt-0.5 font-mono text-[10px] text-[#706B62]">
+            {activeSupplyRoutes[0].sourceRegionName} → {activeSupplyRoutes[0].targetRegionName} (
+            {activeSupplyRoutes[0].jarakKm} km · ~{activeSupplyRoutes[0].estimasiWaktuJam} jam)
+          </p>
+        </div>
+      )}
+
       {/* Scope Indicator HUD */}
       <div className="absolute bottom-3 left-3 z-20 hidden sm:flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-md border border-[#DED8CD] text-[10px] text-[#706B62] pointer-events-none select-none shadow-sm">
-        <Compass size={12} className="text-[#74151C]" />
+        <Compass size={12} className="text-[#67151D]" />
         <span>
           Cakupan:{' '}
           <strong className="text-[#24231F]">

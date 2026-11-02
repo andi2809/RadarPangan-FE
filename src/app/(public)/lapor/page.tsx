@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import commoditiesData from '../../../data/mock/commodities.json';
+import { submitLaporanWarga } from '../../../lib/api';
+import { loadCitizenReports, saveCitizenReports } from '../../../utils/dual-source-store';
 
 export default function LaporPage() {
   const [commodity, setCommodity] = useState('cabai_rawit_merah');
@@ -26,18 +28,85 @@ export default function LaporPage() {
     if (!price) return;
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const generated = 'TKT-20261024-' + Math.floor(1000 + Math.random() * 9000);
-      setTicketId(generated);
-      setIsSubmitting(false);
-    }, 500);
+    const numericPrice = parseInt(price.replace(/\D/g, ''), 10) || 45000;
+    const selectedComm = commoditiesData.find((c) => c.id === commodity);
+    const regionMap: Record<string, { id: string; name: string }> = {
+      'Pasar Ciroyom, Kota Bandung': { id: '32.73', name: 'Kota Bandung' },
+      'Pasar Induk Caringin, Kota Bandung': { id: '32.73', name: 'Kota Bandung' },
+      'Pasar Baru Cikarang, Kab. Bekasi': { id: '32.16', name: 'Kab. Bekasi' },
+      'Pasar Cibinong, Kab. Bogor': { id: '32.01', name: 'Kab. Bogor' },
+      'Pasar Kanoman, Kota Cirebon': { id: '32.74', name: 'Kota Cirebon' },
+    };
+    const matchedRegion = regionMap[market] || { id: '32.73', name: 'Kota Bandung' };
+
+    const recordLocally = (code: string) => {
+      const existing = loadCitizenReports();
+      saveCitizenReports([
+        {
+          id: `CLUST-${Date.now()}`,
+          ticketCode: code,
+          regionId: matchedRegion.id,
+          regionName: matchedRegion.name,
+          commodityId: commodity,
+          commodityName: selectedComm?.name || 'Cabai Rawit Merah',
+          namaPasar: market.split(',')[0] || market,
+          hargaWargaRp: numericPrice,
+          hargaResmiRp: selectedComm?.hargaAcuanRp || 45000,
+          jumlahLaporan: 10,
+          radiusKm: 2.0,
+          statusApproval: 'pending',
+          updatedAt: 'Baru saja dikirim warga',
+        },
+        ...existing,
+      ]);
+    };
+
+    submitLaporanWarga({
+      region_id: matchedRegion.id,
+      commodity_id: commodity,
+      harga_rp: numericPrice,
+      nama_pasar: market,
+    })
+      .then((res) => {
+        const generated = res?.data?.id || 'TKT-20261024-' + Math.floor(1000 + Math.random() * 9000);
+        recordLocally(generated);
+        setTicketId(generated);
+      })
+      .catch(() => {
+        const generated = 'TKT-20261024-' + Math.floor(1000 + Math.random() * 9000);
+        recordLocally(generated);
+        setTicketId(generated);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTicket) return;
+    const code = searchTicket.trim().toUpperCase();
+    const matched = loadCitizenReports().find(
+      (item) => item.ticketCode.toUpperCase() === code || item.id.toUpperCase() === code
+    );
+    if (matched) {
+      setTicketResult({
+        id: matched.ticketCode,
+        commodity: matched.commodityName,
+        market: `${matched.namaPasar}, ${matched.regionName}`,
+        price: matched.hargaWargaRp,
+        quorum: matched.jumlahLaporan,
+        status:
+          matched.statusApproval === 'approved'
+            ? 'Terverifikasi'
+            : matched.statusApproval === 'rejected'
+            ? 'Ditandai Tidak Wajar'
+            : 'Dalam Pemeriksaan Pembanding',
+      });
+      return;
+    }
     setTicketResult({
-      id: searchTicket.toUpperCase(),
+      id: code,
       commodity: 'Cabai Rawit Merah',
       market: 'Pasar Ciroyom, Kota Bandung',
       price: 48000,
