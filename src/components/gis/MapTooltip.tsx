@@ -15,6 +15,8 @@ interface MapTooltipProps {
   y: number;
   visible: boolean;
   activeHorizon: 'aktual' | 'h7';
+  commodityAcuanType?: string;
+  commodityAcuanRp?: number;
 }
 
 export const MapTooltip: React.FC<MapTooltipProps> = ({
@@ -24,6 +26,8 @@ export const MapTooltip: React.FC<MapTooltipProps> = ({
   y,
   visible,
   activeHorizon,
+  commodityAcuanType = 'HAP',
+  commodityAcuanRp,
 }) => {
   if (!visible) return null;
 
@@ -38,18 +42,18 @@ export const MapTooltip: React.FC<MapTooltipProps> = ({
           transform: 'translate3d(0, 0, 0)',
         }}
       >
-        <div className="w-64 rounded-xl border border-[#DED8CD] bg-white/95 p-3.5 shadow-xl backdrop-blur-md text-xs text-[#24231F]">
-          <div className="flex items-center justify-between border-b border-[#F0ECE4] pb-2 mb-2">
+        <div className="w-64 rounded-xl border border-[#E5E2DA] bg-white p-3 shadow-md text-xs text-[#292824]">
+          <div className="flex items-center justify-between border-b border-[#E5E2DA] pb-2 mb-2">
             <div>
-              <div className="font-extrabold text-sm text-[#24231F]">{nonJabarInfo.name}</div>
-              <div className="text-[11px] text-[#706B62]">{nonJabarInfo.provinceName}</div>
+              <div className="font-bold text-sm text-[#292824]">{nonJabarInfo.name}</div>
+              <div className="text-[11px] text-[#77746C]">{nonJabarInfo.provinceName}</div>
             </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#F1F5F9] text-[#64748B] border border-[#CBD5E1]">
-              Tanpa data
+            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#EAE8E1] text-[#77746C]">
+              Luar Cakupan
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[#706B62] text-[11px] bg-[#F8FAFC] p-2 rounded-lg border border-[#DED8CD]">
-            <span className="size-2 rounded-full bg-[#CBD5E1] shrink-0" />
+          <div className="flex items-center gap-2 text-[#77746C] text-[11px] bg-[#F5F3ED] p-2 rounded-lg border border-[#E5E2DA]">
+            <span className="w-2 h-2 rounded-full bg-[#D5D5D0] shrink-0" />
             <span>Data harga belum tersedia untuk wilayah ini</span>
           </div>
         </div>
@@ -59,20 +63,25 @@ export const MapTooltip: React.FC<MapTooltipProps> = ({
 
   if (!telemetry) return null;
 
-  const { region, currentPrice, predictionH7, supply, affordability } = telemetry;
+  const { region, currentPrice, predictionH7 } = telemetry;
   const isH7 = activeHorizon === 'h7';
   const displayPrice = isH7 ? predictionH7.hargaPrediksiH7Rp : currentPrice.hargaAktualRp;
   const displayStatus = isH7 ? predictionH7.status : currentPrice.status;
-  const displaySelisih = isH7 ? predictionH7.selisihPersen : currentPrice.selisihPersen;
+  const acuanRp = commodityAcuanRp || currentPrice.hargaAcuanRp || 45000;
+  const deviasiRp = displayPrice - acuanRp;
+  const deviasiPct = Number(((deviasiRp / acuanRp) * 100).toFixed(2));
 
-  const statusBadgeBg =
-    displayStatus === 'kritis'
-      ? 'bg-[#FBE7E4] text-[#DC4840] border-[#DC4840]/30'
-      : displayStatus === 'waspada'
-      ? 'bg-[#FBF0D7] text-[#96620A] border-[#E9B949]/40'
-      : displayStatus === 'turun'
-      ? 'bg-blue-50 text-blue-700 border-blue-200'
-      : 'bg-[#E3F0E7] text-[#287653] border-[#27815A]/30';
+  // Visual status pill
+  let statusLabel = 'Normal';
+  let statusBadgeStyle = 'bg-[#729B82]/15 text-[#39634B] border-[#729B82]/30';
+
+  if (displayStatus === 'kritis' || deviasiPct > 10) {
+    statusLabel = 'Tekanan Tinggi';
+    statusBadgeStyle = 'bg-[#B85C52]/15 text-[#8A372E] border-[#B85C52]/30';
+  } else if (displayStatus === 'waspada' || deviasiPct > 5) {
+    statusLabel = 'Perlu Perhatian';
+    statusBadgeStyle = 'bg-[#D6B45F]/20 text-[#8F7020] border-[#D6B45F]/40';
+  }
 
   return (
     <div
@@ -83,87 +92,61 @@ export const MapTooltip: React.FC<MapTooltipProps> = ({
         transform: 'translate3d(0, 0, 0)',
       }}
     >
-      <div className="w-72 rounded-xl border border-[#DED8CD] bg-white/95 p-3.5 shadow-2xl backdrop-blur-md text-xs text-[#24231F]">
+      <div className="w-72 rounded-xl border border-[#E5E2DA] bg-white p-3.5 shadow-lg text-xs text-[#292824]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#F0ECE4] pb-2 mb-2.5">
+        <div className="flex items-center justify-between border-b border-[#E5E2DA] pb-2 mb-2.5">
           <div>
-            <div className="font-extrabold text-sm text-[#24231F] flex items-center gap-1.5">
+            <div className="font-bold text-sm text-[#292824] flex items-center gap-1.5">
               <span>{region.name}</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#FBF9F4] text-[#706B62] border border-[#DED8CD]">
-                {region.id}
-              </span>
             </div>
-            <div className="text-[11px] text-[#706B62]">Jawa Barat</div>
+            <div className="text-[11px] text-[#77746C]">Provinsi Jawa Barat</div>
           </div>
           <span
-            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${statusBadgeBg}`}
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${statusBadgeStyle}`}
           >
-            {displayStatus}
+            {statusLabel}
           </span>
         </div>
 
         {/* Pricing Metrics */}
-        <div className="grid grid-cols-2 gap-2 mb-2.5 bg-[#FBF9F4] p-2 rounded-lg border border-[#DED8CD]">
-          <div>
-            <div className="text-[10px] text-[#898277] uppercase tracking-wider font-semibold">
-              {isH7 ? 'Proyeksi H+7' : 'Harga Aktual'}
-            </div>
-            <div className="text-base font-extrabold font-mono text-[#24231F] tabular-nums">
-              Rp {displayPrice.toLocaleString('id-ID')}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] text-[#898277] uppercase tracking-wider font-semibold">
-              Deviasi HAP
-            </div>
-            <div
-              className={`text-sm font-bold font-mono tabular-nums ${
-                displaySelisih > 0 ? 'text-[#DC4840]' : 'text-[#287653]'
-              }`}
-            >
-              {displaySelisih > 0 ? `+${displaySelisih}%` : `${displaySelisih}%`}
-            </div>
-          </div>
-        </div>
-
-        {/* EWS Telemetry */}
-        <div className="space-y-1.5 font-mono text-[11px]">
-          <div className="flex justify-between items-center text-[#24231F]">
-            <span className="text-[#706B62]">EWS Risk Score:</span>
-            <span
-              className={`font-bold tabular-nums ${
-                predictionH7.ewsScore >= 55 ? 'text-[#DC4840]' : 'text-[#24231F]'
-              }`}
-            >
-              {predictionH7.ewsScore} / 100 ({predictionH7.riskLevel})
+        <div className="space-y-1.5 bg-[#F5F3ED] p-2.5 rounded-lg border border-[#E5E2DA] font-mono text-[11px]">
+          <div className="flex justify-between items-center">
+            <span className="text-[#77746C] font-sans font-medium">
+              {isH7 ? 'Estimasi H+7:' : 'Harga Observasi:'}
+            </span>
+            <span className="font-bold text-[#292824] text-xs">
+              Rp {displayPrice.toLocaleString('id-ID')}/kg
             </span>
           </div>
 
-          <div className="flex justify-between items-center text-[#24231F]">
-            <span className="text-[#706B62]">Neraca Pasokan:</span>
-            <span
-              className={`capitalize font-semibold ${
-                supply.statusNeraca === 'surplus'
-                  ? 'text-[#287653]'
-                  : supply.statusNeraca === 'defisit'
-                  ? 'text-[#DC4840]'
-                  : 'text-[#96620A]'
-              }`}
-            >
-              {supply.statusNeraca} ({supply.hariKetahananStok} hari)
+          <div className="flex justify-between items-center">
+            <span className="text-[#77746C] font-sans font-medium">
+              Acuan ({commodityAcuanType}):
+            </span>
+            <span className="text-[#292824] font-medium">
+              Rp {acuanRp.toLocaleString('id-ID')}/kg
             </span>
           </div>
 
-          <div className="flex justify-between items-center text-[#24231F]">
-            <span className="text-[#706B62]">Beban UMK 2026:</span>
-            <span className="tabular-nums font-bold text-amber-700">
-              {affordability.umkRatioBasketPercent}% UMK
+          <div className="flex justify-between items-center pt-1 border-t border-[#E5E2DA]">
+            <span className="text-[#77746C] font-sans font-medium">Deviasi Acuan:</span>
+            <span
+              className={`font-bold ${
+                deviasiPct > 10
+                  ? 'text-[#B85C52]'
+                  : deviasiPct > 5
+                  ? 'text-[#B58D2B]'
+                  : 'text-[#39634B]'
+              }`}
+            >
+              {deviasiPct > 0 ? `+${deviasiPct}%` : `${deviasiPct}%`} (
+              {deviasiRp >= 0 ? `+Rp ${deviasiRp.toLocaleString('id-ID')}` : `-Rp ${Math.abs(deviasiRp).toLocaleString('id-ID')}`})
             </span>
           </div>
         </div>
 
-        <div className="mt-2.5 pt-2 border-t border-[#F0ECE4] text-[10px] text-[#898277] text-center">
-          Klik wilayah untuk sinkronisasi analitik & rekomendasi
+        <div className="mt-2 text-[10px] text-[#77746C] text-center">
+          Klik untuk meninjau detail wilayah pada panel analitik
         </div>
       </div>
     </div>

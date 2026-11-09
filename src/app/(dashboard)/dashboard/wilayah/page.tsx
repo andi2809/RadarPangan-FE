@@ -3,6 +3,10 @@
 import React, { useState, useMemo } from 'react';
 import { GISLayout } from '@/components/gis/layout/GISLayout';
 import { PriceForecastChart } from '@/components/gis/analysis/PriceForecastChart';
+import {
+  DecisionSupportReportModal,
+  type EnrichedRegionReportItem,
+} from '@/components/gis/analysis/DecisionSupportReportModal';
 import { getAllRegions, getAllCommodities, getTelemetry } from '@/utils/geo-loader';
 import {
   calculateH7Forecast,
@@ -83,6 +87,7 @@ export default function WilayahDanRiwayatPage() {
   const [search, setSearch] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('score');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
 
   const rawTelemetry = useMemo(
     () => getTelemetry(selectedCommodity) as Record<string, UnifiedRegionTelemetry>,
@@ -235,6 +240,14 @@ export default function WilayahDanRiwayatPage() {
           <span className="text-xs text-[#706B62]">
             Data diperbarui: <strong className="text-[#24231F]">{LAST_UPDATED_TEXT}</strong>
           </span>
+          <button
+            type="button"
+            onClick={() => setIsReportModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#67151D] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#521016]"
+          >
+            <Download size={14} />
+            <span>Unduh Laporan</span>
+          </button>
         </div>
       </section>
 
@@ -644,6 +657,18 @@ export default function WilayahDanRiwayatPage() {
           </div>
         </div>
       </section>
+
+      {/* Decision Support Report Modal (Print / PDF / CSV) */}
+      <DecisionSupportReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        activeRegion={activeRegionData as EnrichedRegionReportItem}
+        commodity={selectedCommodityObj}
+        allRegions={enrichedRegions as EnrichedRegionReportItem[]}
+        seasonalScenarioLabel={SEASONAL_MULTIPLIERS[seasonalScenario].shortLabel}
+        periodDays={periodDays}
+        lastUpdatedText={LAST_UPDATED_TEXT}
+      />
     </GISLayout>
   );
 }

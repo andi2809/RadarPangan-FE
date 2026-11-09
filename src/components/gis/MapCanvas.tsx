@@ -1,15 +1,20 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import Link from 'next/link';
 import * as maplibregl from 'maplibre-gl';
 import { UnifiedRegionTelemetry, SupplyRoute, PriceStatus } from '../../types/domain';
 import { MapTooltip, NonJabarInfo } from './MapTooltip';
-import { Compass, Navigation, MapPin, Truck } from 'lucide-react';
+import { Navigation, MapPin, RotateCcw } from 'lucide-react';
 
 if (typeof window !== 'undefined' && typeof maplibregl.setWorkerUrl === 'function') {
   maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
 }
+
+// Bounding box for 27 Kab/Kota Jawa Barat
+const JABAR_BOUNDS: [[number, number], [number, number]] = [
+  [106.35, -7.82], // Southwest [lng, lat]
+  [108.85, -5.92], // Northeast [lng, lat]
+];
 
 interface MapCanvasProps {
   geoJson: GeoJSON.FeatureCollection | null;
@@ -17,7 +22,9 @@ interface MapCanvasProps {
   activeHorizon: 'aktual' | 'h7';
   selectedRegionId: string | null;
   onSelectRegion: (regionId: string) => void;
-  activeSupplyRoutes?: SupplyRoute[];
+  commodityAcuanType?: string;
+  commodityAcuanRp?: number;
+  activeSupplyRoutes?: SupplyRoute[]; // Kept for backwards compatibility, not rendered
   simulatedStatusMap?: Record<string, PriceStatus>;
   mode?: 'full' | 'preview';
   className?: string;
@@ -32,13 +39,12 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   activeHorizon,
   selectedRegionId,
   onSelectRegion,
-  activeSupplyRoutes = [],
-  simulatedStatusMap = {},
+  commodityAcuanType = 'HAP',
+  commodityAcuanRp = 45000,
   mode = 'full',
   className,
   viewScope = 'jabar',
   onViewScopeChange,
-  onOpenCommandCenter,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -53,6 +59,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   useEffect(() => {
     onSelectRegionRef.current = onSelectRegion;
   }, [onSelectRegion]);
+
   const [activeViewScope, setActiveViewScope] = useState<'jabar' | 'indonesia' | 'user'>(viewScope);
   const [isGeolocating, setIsGeolocating] = useState(false);
   const [internalGeoJson, setInternalGeoJson] = useState<GeoJSON.FeatureCollection | null>(geoJson);
@@ -102,27 +109,26 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     visible: false,
   });
 
-  // Color mapping based on EWS status (warna kanonik DESIGN_GUIDELINES)
+  // Color mapping based on exact user specification:
+  // Normal: #729B82, Warning: #D6B45F, High pressure: #B85C52, No data: #D5D5D0
   const getColorForStatus = useCallback((status?: string) => {
     switch (status) {
       case 'kritis':
-        return '#E85B4F';
+        return '#B85C52';
       case 'waspada':
-        return '#F0C94D';
+        return '#D6B45F';
       case 'turun':
-        return '#0369A1';
       case 'aman':
-        return '#4B9D73';
+        return '#729B82';
       case 'tidak_ada_data':
       default:
-        return '#CBD5E1';
+        return '#D5D5D0';
     }
   }, []);
 
-  // Wilayah di luar cakupan data demo tidak boleh diberi status tebakan.
   const getNationalStatus = useCallback((): PriceStatus => 'tidak_ada_data', []);
 
-  // Initialize MapLibre
+  // Initialize MapLibre with light neutral canvas
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -131,9 +137,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     }
 
     const esriTileUrl =
-      mode === 'full'
-        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-        : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -153,7 +157,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
             id: 'background',
             type: 'background',
             paint: {
-              'background-color': mode === 'full' ? '#0F172A' : '#F4EFE6', // Clean background
+              'background-color': '#EAE8E1', // Map background from guidelines
             },
           },
           {
@@ -163,25 +167,37 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
             minzoom: 0,
             maxzoom: 19,
             paint: {
-              'raster-opacity': mode === 'full' ? 0.9 : 0.65,
+              'raster-opacity': 0.75,
             },
           },
         ],
       },
       center: [107.6191, -6.9175], // Jawa Barat default
-      zoom: mode === 'preview' ? 7.6 : 8.0,
+      zoom: mode === 'preview' ? 7.6 : 8.1,
       minZoom: 3.5,
       maxZoom: 14,
-      pitch: mode === 'preview' ? 0 : 15,
+      pitch: 0,
       bearing: 0,
       attributionControl: false,
     });
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
+    map.addControl(
+      new maplibregl.NavigationControl({ showCompass: true, showZoom: true }),
+      'bottom-right'
+    );
 
     map.on('load', () => {
       mapRef.current = map;
       setMapLoaded(true);
+
+      // Fit bounds to Jabar on initial load with proper padding
+      const rightPadding = mode === 'full' ? 380 : 30;
+      const bottomPadding = mode === 'full' ? 190 : 30;
+      map.fitBounds(JABAR_BOUNDS, {
+        padding: { top: 70, bottom: bottomPadding, left: 30, right: rightPadding },
+        duration: 800,
+        maxZoom: 9.0,
+      });
     });
 
     return () => {
@@ -199,22 +215,22 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       center: [118.0149, -2.5489],
       zoom: mode === 'preview' ? 4.4 : 4.8,
       pitch: 0,
-      duration: 1200,
+      duration: 1000,
       essential: true,
     });
   }, [mode, onViewScopeChange]);
 
-  // View switch: Fly to Jawa Barat
+  // View switch: Fly to Jawa Barat (Fit Bounds)
   const handleFlyToJabar = useCallback(() => {
     if (!mapRef.current) return;
     setActiveViewScope('jabar');
     onViewScopeChange?.('jabar');
-    mapRef.current.flyTo({
-      center: [107.6191, -6.9175],
-      zoom: mode === 'preview' ? 7.8 : 8.2,
-      pitch: 0,
-      duration: 1000,
-      essential: true,
+    const rightPadding = mode === 'full' ? 380 : 30;
+    const bottomPadding = mode === 'full' ? 190 : 30;
+    mapRef.current.fitBounds(JABAR_BOUNDS, {
+      padding: { top: 70, bottom: bottomPadding, left: 30, right: rightPadding },
+      duration: 800,
+      maxZoom: 9.0,
     });
   }, [mode, onViewScopeChange]);
 
@@ -234,7 +250,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           mapRef.current?.flyTo({
             center: [longitude, latitude],
             zoom: 8.5,
-            duration: 1200,
+            duration: 1000,
             essential: true,
           });
         } else {
@@ -250,7 +266,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     );
   }, [handleFlyToIndonesia, handleFlyToJabar]);
 
-  // Sinkronkan pilihan scope dari toolbar dengan kamera peta
+  // Sinkronkan pilihan scope dari prop
   useEffect(() => {
     if (viewScope === 'indonesia') handleFlyToIndonesia();
     else handleFlyToJabar();
@@ -265,7 +281,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       mapRef.current.flyTo({
         center: [centroid.lng, centroid.lat],
         zoom: mode === 'preview' ? 8.4 : 9.0,
-        duration: 800,
+        duration: 600,
         essential: true,
       });
     }
@@ -298,7 +314,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
       if (isJabar) {
         const baseStatus = isH7 ? telem?.predictionH7?.status : telem?.currentPrice?.status;
-        effectiveStatus = (simulatedStatusMap[regId] || baseStatus || 'tidak_ada_data') as PriceStatus;
+        effectiveStatus = (baseStatus || 'tidak_ada_data') as PriceStatus;
       } else {
         effectiveStatus = getNationalStatus();
       }
@@ -326,7 +342,6 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       features: enrichedFeatures,
     };
 
-    // Update or add Source
     const source = map.getSource('indonesia-kabkota') as maplibregl.GeoJSONSource | undefined;
     if (source) {
       source.setData(enrichedGeoJson);
@@ -336,7 +351,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         data: enrichedGeoJson,
       });
 
-      // 1. Polygon Fill Layer (Vivid Choropleth according to Food Prices)
+      // 1. Polygon Fill Layer
       map.addLayer({
         id: 'indonesia-fill',
         type: 'fill',
@@ -346,13 +361,15 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           'fill-opacity': [
             'case',
             ['boolean', ['get', 'isSelected'], false],
-            0.95,
+            0.92,
             0.82,
           ],
         },
       });
 
-      // 2. Polygon Border Outline Layer (High Contrast White Boundaries)
+      // 2. Polygon Border Outline Layer
+      // Selected region: Burgundy #791D2A (3.4px)
+      // Unselected regions: Crisp white (#FFFFFF, 1.2px)
       map.addLayer({
         id: 'indonesia-outline',
         type: 'line',
@@ -361,14 +378,14 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
           'line-color': [
             'case',
             ['boolean', ['get', 'isSelected'], false],
-            '#67151D', // Selected region highlighted in deep burgundy
-            '#FFFFFF', // Crisp, prominent white boundary line between all kabupaten/kota
+            '#791D2A', // Burgundy accent
+            '#FFFFFF', // Clean boundary
           ],
           'line-width': [
             'case',
             ['boolean', ['get', 'isSelected'], false],
-            3.6,
-            1.6,
+            3.4,
+            1.2,
           ],
           'line-opacity': 0.95,
         },
@@ -386,17 +403,17 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
               'interpolate',
               ['linear'],
               ['zoom'],
-              6, 8.5,
-              8, 10.5,
+              6, 9,
+              8, 11,
               11, 13,
             ],
             'text-anchor': 'center',
             'text-allow-overlap': false,
           },
           paint: {
-            'text-color': '#1E293B',
+            'text-color': '#292824',
             'text-halo-color': '#FFFFFF',
-            'text-halo-width': 1.8,
+            'text-halo-width': 2,
           },
         });
       } catch (err) {
@@ -447,216 +464,115 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     mapLoaded,
     activeHorizon,
     selectedRegionId,
-    simulatedStatusMap,
     allTelemetry,
     getColorForStatus,
     getNationalStatus,
     onSelectRegion,
   ]);
 
-  // Render Supply Matchmaker Distribution Routes (Surplus -> Defisit)
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-
-    const lineFeatures: GeoJSON.Feature[] = activeSupplyRoutes.map((route, idx) => ({
-      type: 'Feature',
-      properties: {
-        id: route.id,
-        rank: idx + 1,
-        sourceName: route.sourceRegionName,
-        targetName: route.targetRegionName,
-        jarakKm: route.jarakKm,
-        isPrimary: idx === 0,
-      },
-      geometry: {
-        type: 'LineString',
-        coordinates: route.coordinates,
-      },
-    }));
-
-    const pointFeatures: GeoJSON.Feature[] = [];
-    activeSupplyRoutes.forEach((route, idx) => {
-      if (route.coordinates.length >= 2) {
-        const start = route.coordinates[0];
-        const end = route.coordinates[route.coordinates.length - 1];
-        pointFeatures.push({
-          type: 'Feature',
-          properties: {
-            role: 'origin',
-            label: `Pemasok: ${route.sourceRegionName}`,
-            isPrimary: idx === 0,
-          },
-          geometry: { type: 'Point', coordinates: start },
-        });
-        if (idx === 0) {
-          pointFeatures.push({
-            type: 'Feature',
-            properties: {
-              role: 'destination',
-              label: `Tujuan: ${route.targetRegionName}`,
-              isPrimary: true,
-            },
-            geometry: { type: 'Point', coordinates: end },
-          });
-        }
-      }
-    });
-
-    const routeGeoJson: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection',
-      features: lineFeatures,
-    };
-
-    const pointGeoJson: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection',
-      features: pointFeatures,
-    };
-
-    const routeSource = map.getSource('supply-routes-source') as maplibregl.GeoJSONSource | undefined;
-    if (routeSource) {
-      routeSource.setData(routeGeoJson);
-    } else {
-      map.addSource('supply-routes-source', {
-        type: 'geojson',
-        data: routeGeoJson,
-      });
-
-      map.addLayer({
-        id: 'supply-routes-casing',
-        type: 'line',
-        source: 'supply-routes-source',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-color': '#FFFDF7',
-          'line-width': ['case', ['boolean', ['get', 'isPrimary'], false], 6, 4],
-          'line-opacity': 0.9,
-        },
-      });
-
-      map.addLayer({
-        id: 'supply-routes-line',
-        type: 'line',
-        source: 'supply-routes-source',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-color': ['case', ['boolean', ['get', 'isPrimary'], false], '#67151D', '#287653'],
-          'line-width': ['case', ['boolean', ['get', 'isPrimary'], false], 3.2, 2.2],
-          'line-dasharray': [2, 1.5],
-          'line-opacity': 0.95,
-        },
-      });
-    }
-
-    const pointSource = map.getSource('supply-points-source') as maplibregl.GeoJSONSource | undefined;
-    if (pointSource) {
-      pointSource.setData(pointGeoJson);
-    } else {
-      map.addSource('supply-points-source', {
-        type: 'geojson',
-        data: pointGeoJson,
-      });
-
-      map.addLayer({
-        id: 'supply-points-circle',
-        type: 'circle',
-        source: 'supply-points-source',
-        paint: {
-          'circle-radius': ['case', ['==', ['get', 'role'], 'destination'], 7, 6],
-          'circle-color': [
-            'case',
-            ['==', ['get', 'role'], 'destination'],
-            '#E85B4F',
-            '#287653',
-          ],
-          'circle-stroke-color': '#FFFDF7',
-          'circle-stroke-width': 2,
-        },
-      });
-    }
-  }, [activeSupplyRoutes, mapLoaded]);
-
   const containerClasses =
     className ||
     (mode === 'preview'
-      ? 'relative w-full h-[400px] sm:h-[480px] lg:h-[540px] rounded-b-xl overflow-hidden bg-[#F4EFE6]'
-      : 'relative w-full h-screen overflow-hidden bg-[#F4EFE6]');
+      ? 'relative w-full h-[380px] sm:h-[460px] lg:h-[520px] rounded-b-xl overflow-hidden bg-[#EAE8E1]'
+      : 'relative w-full h-screen overflow-hidden bg-[#EAE8E1]');
 
   return (
     <div className={containerClasses}>
       {/* MapLibre DOM Node */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* View Scope Controls (Clean, Unobtrusive at Top-Left) */}
-      <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-md p-1 rounded-lg border border-[#DED8CD] shadow-md text-xs font-sans select-none">
+      {/* Scope Controls (Top-Left) */}
+      <div className="absolute top-20 left-4 z-20 flex items-center gap-1 bg-white/95 p-1 rounded-xl border border-[#E5E2DA] shadow-sm text-xs font-sans select-none">
         <button
           type="button"
           onClick={handleFlyToJabar}
-          className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 text-[11px] font-bold ${
+          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium ${
             activeViewScope === 'jabar'
-              ? 'bg-[#67151D] text-white shadow-sm'
-              : 'text-[#625E56] hover:bg-[#F0ECE4]'
+              ? 'bg-[#791D2A] text-white'
+              : 'text-[#292824] hover:bg-[#F5F3ED]'
           }`}
-          title="Fokus Wilayah Jawa Barat"
+          title="Fokus 27 Kab/Kota Jawa Barat"
         >
-          <MapPin size={12} />
+          <MapPin size={13} />
           <span>Jawa Barat</span>
         </button>
 
         <button
           type="button"
           onClick={handleFlyToIndonesia}
-          className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1 text-[11px] font-bold ${
+          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium ${
             activeViewScope === 'indonesia'
-              ? 'bg-[#67151D] text-white shadow-sm'
-              : 'text-[#625E56] hover:bg-[#F0ECE4]'
+              ? 'bg-[#791D2A] text-white'
+              : 'text-[#292824] hover:bg-[#F5F3ED]'
           }`}
-          title="Seluruh Nusantara (38 Provinsi)"
+          title="Lihat Peta Nasional"
         >
-          <Navigation size={12} />
+          <Navigation size={13} />
           <span>Nusantara</span>
         </button>
 
         <button
           type="button"
           onClick={handleGeolocate}
-          className={`px-2 py-1 rounded-md transition-all flex items-center gap-1 text-[11px] text-[#625E56] hover:bg-[#F0ECE4] ${
-            isGeolocating ? 'animate-pulse text-[#67151D]' : ''
+          className={`p-1.5 rounded-lg transition-colors text-[#77746C] hover:bg-[#F5F3ED] hover:text-[#292824] ${
+            isGeolocating ? 'animate-pulse text-[#791D2A]' : ''
           }`}
-          title="Pusatkan Lokasi Saya"
+          title="Lokasi Saat Ini"
         >
-          <Navigation size={12} />
+          <Navigation size={13} />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleFlyToJabar}
+          className="p-1.5 rounded-lg transition-colors text-[#77746C] hover:bg-[#F5F3ED] hover:text-[#292824]"
+          title="Reset View Jawa Barat"
+        >
+          <RotateCcw size={13} />
         </button>
       </div>
 
-      {/* Top-Right: Active Supply Route HUD Badge */}
-      {activeSupplyRoutes.length > 0 && (
-        <div className="absolute top-3 right-3 z-20 max-w-xs rounded-lg border border-[#DED8CD] bg-[#FFFDF7]/95 px-3 py-2 text-[11px] text-[#24231F] shadow-md backdrop-blur-md">
-          <div className="flex items-center gap-1.5 font-bold text-[#67151D]">
-            <Truck size={13} className="text-[#287653]" />
-            <span>Rute Rekomendasi Pasokan</span>
-          </div>
-          <p className="mt-0.5 font-mono text-[10px] text-[#706B62]">
-            {activeSupplyRoutes[0].sourceRegionName} → {activeSupplyRoutes[0].targetRegionName} (
-            {activeSupplyRoutes[0].jarakKm} km · ~{activeSupplyRoutes[0].estimasiWaktuJam} jam)
-          </p>
+      {/* Simplified Editorial Legend (Bottom-Left) */}
+      <div className="absolute bottom-4 left-4 z-20 bg-white/95 border border-[#E5E2DA] rounded-xl p-3 shadow-md text-xs select-none max-w-xs">
+        <div className="text-[11px] font-bold text-[#292824] mb-2 uppercase tracking-wide">
+          Status Deviasi Acuan ({commodityAcuanType})
         </div>
-      )}
+        <div className="space-y-1.5 text-[11px] text-[#292824]">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-sm bg-[#729B82]" />
+              <span>Normal</span>
+            </div>
+            <span className="text-[#77746C] font-mono text-[10px]">&le; +5%</span>
+          </div>
 
-      {/* Scope Indicator HUD */}
-      <div className="absolute bottom-3 left-3 z-20 hidden sm:flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-md border border-[#DED8CD] text-[10px] text-[#706B62] pointer-events-none select-none shadow-sm">
-        <Compass size={12} className="text-[#67151D]" />
-        <span>
-          Cakupan:{' '}
-          <strong className="text-[#24231F]">
-            {activeViewScope === 'indonesia'
-              ? 'Seluruh Indonesia (507 Kab/Kota)'
-              : 'Jawa Barat (27 Kab/Kota)'}
-          </strong>
-        </span>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-sm bg-[#D6B45F]" />
+              <span>Perlu Perhatian</span>
+            </div>
+            <span className="text-[#77746C] font-mono text-[10px]">+5% s/d +10%</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-sm bg-[#B85C52]" />
+              <span>Tekanan Tinggi</span>
+            </div>
+            <span className="text-[#77746C] font-mono text-[10px]">&gt; +10%</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-sm bg-[#D5D5D0]" />
+              <span>Tidak Ada Data</span>
+            </div>
+            <span className="text-[#77746C] font-mono text-[10px]">—</span>
+          </div>
+        </div>
       </div>
 
-      {/* Interactive Hover Tooltip */}
+      {/* Map Tooltip */}
       <MapTooltip
         telemetry={tooltipData.telemetry}
         nonJabarInfo={tooltipData.nonJabarInfo}
@@ -664,6 +580,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         y={tooltipData.y}
         visible={tooltipData.visible}
         activeHorizon={activeHorizon}
+        commodityAcuanType={commodityAcuanType}
+        commodityAcuanRp={commodityAcuanRp}
       />
     </div>
   );
