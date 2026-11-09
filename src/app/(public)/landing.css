@@ -48,6 +48,13 @@ html {
   outline-offset: 2px;
 }
 
+@media (max-width: 374px) {
+  .public-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
 .public-container {
   width: 100%;
   max-width: 1280px;
@@ -71,6 +78,33 @@ html {
   }
 }
 
+/* Hide scrollbar for clean horizontal snap carousels on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile-first touch manipulation helper */
+.touch-target-44 {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+.public-shell input[type="number"]::-webkit-outer-spin-button,
+.public-shell input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.public-shell input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

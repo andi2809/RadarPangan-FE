@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-[11px] font-mono text-emerald-700 dark:text-emerald-300">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Bapanas &bull; PIHPS BI Live</span>
+          <span>Panel Harga Bapanas Live</span>
         </div>
       </div>
 

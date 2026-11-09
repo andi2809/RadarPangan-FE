@@ -6,6 +6,9 @@ import regionsData from '../../../data/mock/regions.json';
 import commoditiesData from '../../../data/mock/commodities.json';
 import telemetryData from '../../../data/mock/telemetry.json';
 
+// Filter komoditas publik warga (tanpa Beras Program SPHP)
+const PUBLIC_COMMODITIES = commoditiesData.filter((c) => c.id !== 'beras_sphp');
+
 function formatShortDate(dateStr: string): string {
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
@@ -44,20 +47,46 @@ export default function DetailHargaPage() {
   );
 
   const selectedComm = useMemo(
-    () => commoditiesData.find((c) => c.id === selectedCommodityId) || commoditiesData[1],
+    () => PUBLIC_COMMODITIES.find((c) => c.id === selectedCommodityId) || PUBLIC_COMMODITIES[0],
     [selectedCommodityId]
   );
 
+  const commTelemetryMap = useMemo(() => {
+    const raw = (telemetryData as Record<string, Record<string, any>>)[selectedComm.id];
+    if (raw && Object.keys(raw).length > 0) return raw;
+    if (selectedComm.id === 'minyak_goreng_curah') {
+      const base = (telemetryData as Record<string, Record<string, any>>)['minyakita'] || {};
+      const factor = 17500 / 15700;
+      const scaled: Record<string, any> = {};
+      Object.entries(base).forEach(([regId, val]: [string, any]) => {
+        const scaledPrice = Math.round(val.currentPrice.hargaAktualRp * factor);
+        scaled[regId] = {
+          ...val,
+          commodityId: 'minyak_goreng_curah',
+          currentPrice: {
+            ...val.currentPrice,
+            hargaAktualRp: scaledPrice,
+            selisihPersen: Number((((scaledPrice - 17500) / 17500) * 100).toFixed(2)),
+          },
+          history14d: val.history14d?.map((h: any) => ({
+            ...h,
+            hargaRp: Math.round(h.hargaRp * factor),
+          })),
+        };
+      });
+      return scaled;
+    }
+    return {};
+  }, [selectedComm.id]);
+
   const regionTelemetry = useMemo(() => {
-    const commMap = (telemetryData as Record<string, Record<string, any>>)[selectedComm.id] || {};
-    return commMap[selectedRegion.id] || commMap['32.01'];
-  }, [selectedComm.id, selectedRegion.id]);
+    return commTelemetryMap[selectedRegion.id] || commTelemetryMap['32.01'];
+  }, [commTelemetryMap, selectedRegion.id]);
 
   // All 27 regions comparison for selected commodity
   const allRegionsComparison = useMemo(() => {
-    const commMap = (telemetryData as Record<string, Record<string, any>>)[selectedComm.id] || {};
     return sortedRegions.map((reg) => {
-      const t = commMap[reg.id];
+      const t = commTelemetryMap[reg.id];
       return {
         id: reg.id,
         name: reg.name,
@@ -68,7 +97,7 @@ export default function DetailHargaPage() {
         umkBurdenPct: t?.affordability?.umkRatioBasketPercent ?? 0,
       };
     });
-  }, [selectedComm, sortedRegions]);
+  }, [selectedComm, sortedRegions, commTelemetryMap]);
 
   const currentPrice = regionTelemetry?.currentPrice?.hargaAktualRp || selectedComm.hargaAcuanRp;
   const referencePrice = selectedComm.hargaAcuanRp;
@@ -145,18 +174,32 @@ export default function DetailHargaPage() {
               >
                 Pilih Kabupaten / Kota (27 Wilayah)
               </label>
-              <select
-                id="detailRegionSelect"
-                value={selectedRegionId}
-                onChange={(e) => setSelectedRegionId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-[#f8f4e9] border-2 border-[#bfb7a6] focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] cursor-pointer focus:outline-none"
-              >
-                {sortedRegions.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="detailRegionSelect"
+                  value={selectedRegionId}
+                  onChange={(e) => setSelectedRegionId(e.target.value)}
+                  className="w-full appearance-none pl-4 pr-11 py-3 min-h-[44px] rounded-xl bg-[#f8f4e9] hover:bg-[#f0ebde] border-2 border-[#bfb7a6] focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] cursor-pointer focus:outline-none transition-colors"
+                >
+                  {sortedRegions.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="w-5 h-5 text-[#67151d] pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             </div>
 
             <div className="md:col-span-5 space-y-1.5">
@@ -166,24 +209,38 @@ export default function DetailHargaPage() {
               >
                 Pilih Komoditas Pangan
               </label>
-              <select
-                id="detailCommoditySelect"
-                value={selectedCommodityId}
-                onChange={(e) => setSelectedCommodityId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-[#f8f4e9] border-2 border-[#67151d]/40 focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] cursor-pointer focus:outline-none"
-              >
-                {commoditiesData.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} (Acuan Rp {c.hargaAcuanRp.toLocaleString('id-ID')}/{c.satuan})
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="detailCommoditySelect"
+                  value={selectedCommodityId}
+                  onChange={(e) => setSelectedCommodityId(e.target.value)}
+                  className="w-full appearance-none pl-4 pr-11 py-3 min-h-[44px] rounded-xl bg-[#f8f4e9] hover:bg-[#f0ebde] border-2 border-[#67151d]/40 focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] cursor-pointer focus:outline-none transition-colors"
+                >
+                  {PUBLIC_COMMODITIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} (Acuan Rp {c.hargaAcuanRp.toLocaleString('id-ID')}/{c.satuan})
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="w-5 h-5 text-[#67151d] pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             </div>
 
             <div className="md:col-span-2">
               <Link
                 href="/lapor"
-                className="w-full inline-flex items-center justify-center py-3 px-4 rounded-xl bg-[#67151d] hover:bg-[#4c0d15] text-white font-bold text-sm transition-colors text-center"
+                className="w-full inline-flex items-center justify-center py-3 px-4 min-h-[44px] rounded-xl bg-[#67151d] hover:bg-[#4c0d15] text-white font-bold text-sm transition-colors text-center"
               >
                 Lapor Harga
               </Link>
@@ -367,15 +424,18 @@ export default function DetailHargaPage() {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          {/* Desktop & Tablet Table View with Sticky First Column */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-left text-sm border-separate border-spacing-0">
               <thead>
                 <tr className="border-b border-[#d6cebe] text-[#5c5b52] text-xs font-mono uppercase">
-                  <th className="py-3 px-3">Kabupaten / Kota</th>
-                  <th className="py-3 px-3 text-right">Harga Rata-Rata</th>
-                  <th className="py-3 px-3 text-right">Selisih thd. Acuan</th>
-                  <th className="py-3 px-3 text-right">UMK 2026</th>
-                  <th className="py-3 px-3 text-center">Status Indikator</th>
+                  <th className="py-3.5 px-4 sticky left-0 z-10 bg-[#fffdf7] shadow-[2px_0_4px_rgba(0,0,0,0.04)] min-w-[190px]">
+                    Kabupaten / Kota
+                  </th>
+                  <th className="py-3.5 px-3 text-right">Harga Rata-Rata</th>
+                  <th className="py-3.5 px-3 text-right">Selisih thd. Acuan</th>
+                  <th className="py-3.5 px-3 text-right">UMK 2026</th>
+                  <th className="py-3.5 px-3 text-center">Status Indikator</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e8e2d4]">
@@ -385,16 +445,22 @@ export default function DetailHargaPage() {
                     <tr
                       key={row.id}
                       onClick={() => setSelectedRegionId(row.id)}
-                      className={`cursor-pointer transition-colors ${
+                      className={`cursor-pointer transition-colors min-h-[44px] ${
                         isCurrent ? 'bg-[#f4e8e9]/70 font-bold' : 'hover:bg-[#f8f4e9]'
                       }`}
                     >
-                      <td className="py-3 px-3 font-bold text-[#1e221f]">{row.name}</td>
-                      <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-[#1e221f]">
+                      <td
+                        className={`py-3.5 px-4 font-bold text-[#1e221f] sticky left-0 z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)] ${
+                          isCurrent ? 'bg-[#f4e8e9]' : 'bg-[#fffdf7] group-hover:bg-[#f8f4e9]'
+                        }`}
+                      >
+                        {row.name}
+                      </td>
+                      <td className="py-3.5 px-3 text-right font-mono tabular-nums font-bold text-[#1e221f]">
                         Rp {row.priceRp.toLocaleString('id-ID')}/{selectedComm.satuan}
                       </td>
                       <td
-                        className={`py-3 px-3 text-right font-mono tabular-nums font-bold ${
+                        className={`py-3.5 px-3 text-right font-mono tabular-nums font-bold ${
                           row.diffPct > 5
                             ? 'text-[#991b1b]'
                             : row.diffPct > 0
@@ -404,12 +470,12 @@ export default function DetailHargaPage() {
                       >
                         {row.diffPct > 0 ? `+${row.diffPct}%` : `${row.diffPct}%`}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono tabular-nums text-[#5c5b52]">
+                      <td className="py-3.5 px-3 text-right font-mono tabular-nums text-[#5c5b52]">
                         Rp {(row.umk2026 / 1000000).toFixed(2)} Jt
                       </td>
-                      <td className="py-3 px-3 text-center">
+                      <td className="py-3.5 px-3 text-center">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
                             row.status === 'kritis'
                               ? 'bg-[#f8ded8] text-[#991b1b]'
                               : row.status === 'waspada'
@@ -429,6 +495,75 @@ export default function DetailHargaPage() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Stacked Card View (< 640px) */}
+          <div className="block sm:hidden space-y-2.5">
+            {allRegionsComparison.map((row) => {
+              const isCurrent = row.id === selectedRegionId;
+              return (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedRegionId(row.id);
+                    if (typeof window !== 'undefined') {
+                      window.scrollTo({ top: 160, behavior: 'smooth' });
+                    }
+                  }}
+                  className={`w-full text-left p-3.5 rounded-xl border-2 transition-all min-h-[44px] cursor-pointer ${
+                    isCurrent
+                      ? 'bg-[#f4e8e9]/80 border-[#67151d] shadow-sm ring-2 ring-[#67151d]/20'
+                      : 'bg-[#fffdf7] hover:bg-[#f8f4e9] border-[#d6cebe]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <span className="font-bold text-[#1e221f] text-sm leading-snug">
+                      {row.name}
+                    </span>
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0 ${
+                        row.status === 'kritis'
+                          ? 'bg-[#f8ded8] text-[#991b1b]'
+                          : row.status === 'waspada'
+                          ? 'bg-[#fef3c7] text-[#92400e]'
+                          : 'bg-[#dcfce7] text-[#166534]'
+                      }`}
+                    >
+                      {row.status === 'kritis'
+                        ? 'Di Atas Acuan'
+                        : row.status === 'waspada'
+                        ? 'Waspada'
+                        : 'Sesuai Acuan'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between text-xs">
+                    <div className="font-mono tabular-nums font-bold text-[#1e221f] text-sm">
+                      Rp {row.priceRp.toLocaleString('id-ID')}/{selectedComm.satuan}
+                    </div>
+                    <div
+                      className={`font-mono font-bold ${
+                        row.diffPct > 5
+                          ? 'text-[#991b1b]'
+                          : row.diffPct > 0
+                          ? 'text-[#92400e]'
+                          : 'text-[#166534]'
+                      }`}
+                    >
+                      {row.diffPct > 0 ? `+${row.diffPct}%` : `${row.diffPct}%`} vs Acuan
+                    </div>
+                  </div>
+
+                  <div className="mt-1.5 pt-1.5 border-t border-[#ede7d8] text-[11px] text-[#5c5b52] font-mono flex items-center justify-between">
+                    <span>UMK: Rp {(row.umk2026 / 1000000).toFixed(2)} Jt</span>
+                    <span className="text-[#67151d] font-bold">
+                      {isCurrent ? '● Terpilih' : 'Tinjau Wilayah →'}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

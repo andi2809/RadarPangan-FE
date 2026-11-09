@@ -157,11 +157,11 @@ export function GISMapToolbar({
               <option value="bawang_merah">Bawang Merah [Pasar]</option>
               <option value="beras_medium">Beras Medium [Pasar Bebas]</option>
               <option value="telur_ayam_ras">Telur Ayam Ras [Pasar]</option>
-              <option value="minyak_goreng_curah">Minyak Goreng Curah [Pasar]</option>
+              <option value="minyak_goreng_curah">Minyak Curah [Pasar]</option>
             </optgroup>
             <optgroup label="Intervensi & Acuan (SP2KP Kemendag)">
-              <option value="beras_sphp">Beras SPHP Bulog [Acuan HET]</option>
-              <option value="minyakita">Minyakita Kemasan [Acuan HET]</option>
+              <option value="beras_sphp">Beras Program SPHP [Acuan HET]</option>
+              <option value="minyakita">Minyak Kemasan [Acuan HET]</option>
             </optgroup>
           </select>
         </div>

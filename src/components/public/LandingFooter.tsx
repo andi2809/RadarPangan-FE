@@ -1,7 +1,32 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 
 export const LandingFooter: React.FC = () => {
+  const handleScrollToAnchor = (e: React.MouseEvent, targetId: string) => {
+    if (typeof window !== 'undefined') {
+      const isHome = window.location.pathname === '/' || window.location.pathname === '';
+      if (isHome) {
+        e.preventDefault();
+        const el = document.getElementById(targetId);
+        if (el) {
+          const headerOffset = 84;
+          const elementPosition = el.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: Math.max(0, offsetPosition),
+            behavior: 'smooth',
+          });
+          window.history.replaceState(null, '', `#${targetId}`);
+        } else if (targetId === 'beranda') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.history.replaceState(null, '', '#beranda');
+        }
+      }
+    }
+  };
+
   return (
     <footer className="bg-[#fffdf7] border-t border-[#ded8c8] py-14 text-sm text-[#4a4b44]">
       <div className="public-container space-y-10">
@@ -9,7 +34,11 @@ export const LandingFooter: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-10 border-b border-[#e5dfd0]">
           {/* Col 1: Brand (Matched icon, size, color, and style with LandingHeader) */}
           <div className="md:col-span-5 space-y-4">
-            <Link href="/#beranda" className="inline-flex items-center gap-3.5 group">
+            <Link
+              href="/#beranda"
+              onClick={(e) => handleScrollToAnchor(e, 'beranda')}
+              className="inline-flex items-center gap-3.5 group"
+            >
               <div className="w-9 h-10 text-[#67151d] flex items-center justify-center flex-shrink-0">
                 <svg viewBox="0 0 32 38" width="32" height="38" aria-hidden="true">
                   <path
@@ -46,18 +75,21 @@ export const LandingFooter: React.FC = () => {
             </h3>
             <ul className="space-y-2.5 text-sm font-semibold text-[#2d312e]">
               <li>
-                <Link href="/#beranda" className="hover:text-[#67151d] transition-colors">
+                <Link
+                  href="/#beranda"
+                  onClick={(e) => handleScrollToAnchor(e, 'beranda')}
+                  className="hover:text-[#67151d] transition-colors"
+                >
                   Beranda
                 </Link>
               </li>
               <li>
-                <Link href="/#peta" className="hover:text-[#67151d] transition-colors">
-                  Persebaran Harga Nasional
-                </Link>
-              </li>
-              <li>
-                <Link href="/harga" className="hover:text-[#67151d] transition-colors">
-                  Detail Harga Wilayah
+                <Link
+                  href="/#peta"
+                  onClick={(e) => handleScrollToAnchor(e, 'peta')}
+                  className="hover:text-[#67151d] transition-colors"
+                >
+                  Peta Wilayah
                 </Link>
               </li>
               <li>
@@ -91,12 +123,12 @@ export const LandingFooter: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://www.bi.go.id/hargapangan"
+                  href="https://jdih.jabarprov.go.id/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-[#67151d] hover:underline font-medium"
                 >
-                  Bank Indonesia (PIHPS Nasional) &#8599;
+                  JDIH &amp; Galura Jabarprov (Regulasi UMK 2026) &#8599;
                 </a>
               </li>
               <li>
@@ -106,7 +138,7 @@ export const LandingFooter: React.FC = () => {
                   rel="noopener noreferrer"
                   className="hover:text-[#67151d] hover:underline font-medium"
                 >
-                  Badan Pusat Statistik (Indikator UMK &amp; Konsumsi) &#8599;
+                  Badan Pusat Statistik (Garis Kemiskinan &amp; Populasi) &#8599;
                 </a>
               </li>
               <li>
@@ -123,13 +155,15 @@ export const LandingFooter: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Attribution & Privacy Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs sm:text-sm text-[#5c5b52]">
+        {/* Bottom Bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm text-[#5c5b52]">
           <div>
-            &copy; 2026 Radar Pangan. Lisensi Data Terbuka CC BY-NC 4.0 &bull; Kebijakan Privasi Pelapor Dilindungi (Tanpa Identitas Pribadi Publik).
+            &copy; 2026 Radar Pangan. Seluruh hak cipta dilindungi.
           </div>
-          <div className="font-mono text-xs text-[#5c5b52]">
-            Observasi Data Sampel: 23 Oktober 2026
+          <div className="flex items-center gap-4 text-xs text-[#5c5b52]">
+            <Link href="/metodologi" className="hover:text-[#67151d] transition-colors">
+              Metodologi &amp; Privasi
+            </Link>
           </div>
         </div>
       </div>

@@ -17,6 +17,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Remove native number input spinners globally */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Custom minimal scrollbar for warm paper style */
 ::-webkit-scrollbar {
   width: 6px;

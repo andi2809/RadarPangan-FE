@@ -94,7 +94,7 @@ export const OTHER_COMMODITY_SPARKLINES: OtherCommoditySparkline[] = [
   },
   {
     id: 'minyak_goreng',
-    name: 'Minyakita (HET)',
+    name: 'Minyak Kemasan (HET)',
     changePct: 5.4,
     isIncrease: true,
     currentPriceRp: 16500,
@@ -150,7 +150,7 @@ export const MARKET_COMPARISON_DATA: MarketComparisonItem[] = [
     }
   },
   {
-    commodityName: 'Minyakita',
+    commodityName: 'Minyak Kemasan',
     unit: 'Rp/liter',
     prices: {
       bekasi: 17200,

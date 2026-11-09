@@ -1,7 +1,29 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 
 export const CtaSection: React.FC = () => {
+  const handleScrollToPeta = (e: React.MouseEvent) => {
+    if (typeof window !== 'undefined') {
+      const isHome = window.location.pathname === '/' || window.location.pathname === '';
+      if (isHome) {
+        e.preventDefault();
+        const el = document.getElementById('peta');
+        if (el) {
+          const headerOffset = 84;
+          const elementPosition = el.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: Math.max(0, offsetPosition),
+            behavior: 'smooth',
+          });
+          window.history.replaceState(null, '', '#peta');
+        }
+      }
+    }
+  };
+
   return (
     <section className="py-16 md:py-24 bg-[#f8f4e9]">
       <div className="public-container">
@@ -21,7 +43,8 @@ export const CtaSection: React.FC = () => {
           {/* Only Public CTAs ("Portal Masuk Stakeholder" removed) */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 flex-shrink-0">
             <Link
-              href="/harga"
+              href="/#peta"
+              onClick={handleScrollToPeta}
               className="inline-flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl bg-[#67151d] hover:bg-[#4c0d15] text-white font-bold text-base shadow-sm transition-all text-center"
             >
               <span>Jelajahi Peta Wilayah</span>

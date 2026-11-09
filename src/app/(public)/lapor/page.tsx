@@ -1,19 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import commoditiesData from '../../../data/mock/commodities.json';
-import { submitLaporanWarga } from '../../../lib/api';
+import regionsData from '../../../data/mock/regions.json';
+import { OFFICIAL_MARKETS_BY_REGION } from '../../../data/mock/officialMarkets';
 import { loadCitizenReports, saveCitizenReports } from '../../../utils/dual-source-store';
 
+type LocationType = 'pasar' | 'warung';
+
+// Filter komoditas eceran harian masyarakat tanpa penyebutan merek/program khusus
+const PUBLIC_COMMODITIES = commoditiesData.filter((c) => c.id !== 'beras_sphp');
+
 export default function LaporPage() {
-  const [commodity, setCommodity] = useState('cabai_rawit_merah');
-  const [market, setMarket] = useState('Pasar Ciroyom, Kota Bandung');
-  const [price, setPrice] = useState('');
-  const [notes, setNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const sortedRegions = useMemo(
+    () => [...regionsData].sort((a, b) => a.name.localeCompare(b.name, 'id')),
+    []
+  );
+
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('32.73'); // Default: Kota Bandung
+  const [locationType, setLocationType] = useState<LocationType>('pasar');
+  const [selectedMarketName, setSelectedMarketName] = useState<string>('Pasar Ciroyom');
+  const [warungAreaNote, setWarungAreaNote] = useState<string>('');
+  const [commodity, setCommodity] = useState<string>('cabai_rawit_merah');
+  const [price, setPrice] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [ticketId, setTicketId] = useState<string | null>(null);
 
-  const [searchTicket, setSearchTicket] = useState('');
+  const [searchTicket, setSearchTicket] = useState<string>('');
   const [ticketResult, setTicketResult] = useState<{
     id: string;
     commodity: string;
@@ -23,68 +37,86 @@ export default function LaporPage() {
     status: 'Dalam Pemeriksaan Pembanding' | 'Terverifikasi' | 'Ditandai Tidak Wajar';
   } | null>(null);
 
+  const activeRegion = useMemo(
+    () => sortedRegions.find((r) => r.id === selectedRegionId) || sortedRegions[0],
+    [sortedRegions, selectedRegionId]
+  );
+
+  const regionMarketDir = useMemo(
+    () =>
+      OFFICIAL_MARKETS_BY_REGION[selectedRegionId] || {
+        regionId: selectedRegionId,
+        regionName: activeRegion?.name || 'Kota Bandung',
+        instansiPengelola: 'UPTD Pasar Dinas Perdagangan Setempat',
+        markets: [],
+      },
+    [selectedRegionId, activeRegion]
+  );
+
+  const selectedComm = useMemo(
+    () => PUBLIC_COMMODITIES.find((c) => c.id === commodity) || PUBLIC_COMMODITIES[0],
+    [commodity]
+  );
+
+  const handleRegionChange = (newRegionId: string) => {
+    setSelectedRegionId(newRegionId);
+    const dir = OFFICIAL_MARKETS_BY_REGION[newRegionId];
+    if (dir && dir.markets.length > 0) {
+      setSelectedMarketName(dir.markets[0].name);
+    } else {
+      setSelectedMarketName('');
+    }
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Hanya izinkan karakter angka murni (0-9)
+    const digitsOnly = e.target.value.replace(/\D/g, '');
+    setPrice(digitsOnly);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!price) return;
+    const numericPrice = parseInt(price.replace(/\D/g, ''), 10);
+    if (!numericPrice || numericPrice <= 0) return;
+
     setIsSubmitting(true);
 
-    const numericPrice = parseInt(price.replace(/\D/g, ''), 10) || 45000;
-    const selectedComm = commoditiesData.find((c) => c.id === commodity);
-    const regionMap: Record<string, { id: string; name: string }> = {
-      'Pasar Ciroyom, Kota Bandung': { id: '32.73', name: 'Kota Bandung' },
-      'Pasar Induk Caringin, Kota Bandung': { id: '32.73', name: 'Kota Bandung' },
-      'Pasar Baru Cikarang, Kab. Bekasi': { id: '32.16', name: 'Kab. Bekasi' },
-      'Pasar Cibinong, Kab. Bogor': { id: '32.01', name: 'Kab. Bogor' },
-      'Pasar Kanoman, Kota Cirebon': { id: '32.74', name: 'Kota Cirebon' },
-    };
-    const matchedRegion = regionMap[market] || { id: '32.73', name: 'Kota Bandung' };
+    const locationLabel =
+      locationType === 'pasar'
+        ? selectedMarketName || regionMarketDir.markets[0]?.name || 'Pasar Rakyat Resmi'
+        : warungAreaNote.trim()
+        ? `Warung / Toko Eceran (${warungAreaNote.trim()})`
+        : 'Warung / Toko Eceran Setempat';
 
-    const recordLocally = (code: string) => {
-      const existing = loadCitizenReports();
-      saveCitizenReports([
-        {
-          id: `CLUST-${Date.now()}`,
-          ticketCode: code,
-          regionId: matchedRegion.id,
-          regionName: matchedRegion.name,
-          commodityId: commodity,
-          commodityName: selectedComm?.name || 'Cabai Rawit Merah',
-          namaPasar: market.split(',')[0] || market,
-          hargaWargaRp: numericPrice,
-          hargaResmiRp: selectedComm?.hargaAcuanRp || 45000,
-          jumlahLaporan: 10,
-          radiusKm: 2.0,
-          statusApproval: 'pending',
-          updatedAt: 'Baru saja dikirim warga',
-        },
-        ...existing,
-      ]);
-    };
+    const generatedCode = 'TKT-20261024-' + Math.floor(1000 + Math.random() * 9000);
 
-    submitLaporanWarga({
-      region_id: matchedRegion.id,
-      commodity_id: commodity,
-      harga_rp: numericPrice,
-      nama_pasar: market,
-    })
-      .then((res) => {
-        const generated = res?.data?.id || 'TKT-20261024-' + Math.floor(1000 + Math.random() * 9000);
-        recordLocally(generated);
-        setTicketId(generated);
-      })
-      .catch(() => {
-        const generated = 'TKT-20261024-' + Math.floor(1000 + Math.random() * 9000);
-        recordLocally(generated);
-        setTicketId(generated);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    const existing = loadCitizenReports();
+    saveCitizenReports([
+      {
+        id: `CLUST-${Date.now()}`,
+        ticketCode: generatedCode,
+        regionId: activeRegion.id,
+        regionName: activeRegion.name,
+        commodityId: selectedComm.id,
+        commodityName: selectedComm.name,
+        namaPasar: locationLabel,
+        hargaWargaRp: numericPrice,
+        hargaResmiRp: selectedComm.hargaAcuanRp || 45000,
+        jumlahLaporan: 10,
+        radiusKm: locationType === 'pasar' ? 1.8 : 2.4,
+        statusApproval: 'pending',
+        updatedAt: 'Baru saja dikirim warga',
+      },
+      ...existing,
+    ]);
+
+    setTicketId(generatedCode);
+    setIsSubmitting(false);
   };
 
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchTicket) return;
+    if (!searchTicket.trim()) return;
     const code = searchTicket.trim().toUpperCase();
     const matched = loadCitizenReports().find(
       (item) => item.ticketCode.toUpperCase() === code || item.id.toUpperCase() === code
@@ -115,6 +147,12 @@ export default function LaporPage() {
     });
   };
 
+  const formattedPricePreview = useMemo(() => {
+    const num = parseInt(price, 10);
+    if (!num || isNaN(num)) return null;
+    return `Rp ${num.toLocaleString('id-ID')} / ${selectedComm.satuan}`;
+  }, [price, selectedComm.satuan]);
+
   return (
     <div className="py-12 md:py-16 bg-[#f8f4e9]">
       <div className="public-container max-w-5xl space-y-12">
@@ -127,7 +165,7 @@ export default function LaporPage() {
             Laporkan Harga Belanjaan Pasar
           </h1>
           <p className="text-base sm:text-lg text-[#4a4b44] leading-relaxed">
-            Sampaikan informasi harga eceran yang Anda temukan di pasar tradisional atau warung setempat. Setiap laporan akan melewati tahapan pemeriksaan lokasi dan perbandingan sebelum ditampilkan sebagai informasi publik.
+            Sampaikan informasi harga eceran yang Anda temukan di pasar rakyat resmi atau warung setempat. Setiap laporan akan melewati tahapan pemeriksaan lokasi dan perbandingan sebelum ditampilkan sebagai informasi publik.
           </p>
         </div>
 
@@ -165,6 +203,7 @@ export default function LaporPage() {
                     setTicketId(null);
                     setPrice('');
                     setNotes('');
+                    setWarungAreaNote('');
                   }}
                   className="py-2.5 px-5 rounded-xl bg-[#67151d] hover:bg-[#4c0d15] text-white font-bold text-sm transition-colors"
                 >
@@ -173,62 +212,257 @@ export default function LaporPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5 text-sm">
+                {/* 1. Pilih Wilayah Kabupaten / Kota */}
+                <div>
+                  <label htmlFor="laporRegion" className="block text-[#1e221f] mb-1.5 font-bold">
+                    1. Wilayah Kabupaten / Kota (Jawa Barat)
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="laporRegion"
+                      value={selectedRegionId}
+                      onChange={(e) => handleRegionChange(e.target.value)}
+                      className="w-full appearance-none pl-4 pr-11 py-3 rounded-xl bg-[#f8f4e9] hover:bg-[#f0ebde] border-2 border-[#bfb7a6] focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] cursor-pointer focus:outline-none transition-colors"
+                    >
+                      {sortedRegions.map((reg) => (
+                        <option key={reg.id} value={reg.id}>
+                          {reg.name}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="w-5 h-5 text-[#67151d] pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* 2. Pilih Jenis Tempat Pembelian (Tombol Pasar Resmi vs Warung) */}
+                <div>
+                  <span className="block text-[#1e221f] mb-1.5 font-bold">
+                    2. Jenis Tempat Pembelian
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label="Jenis Tempat Pembelian">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={locationType === 'pasar'}
+                      onClick={() => setLocationType('pasar')}
+                      className={`p-3.5 rounded-xl border-2 text-left transition-all flex items-start gap-3 ${
+                        locationType === 'pasar'
+                          ? 'bg-[#67151d] text-white border-[#67151d] shadow-sm'
+                          : 'bg-[#f8f4e9] hover:bg-[#f0ebde] text-[#1e221f] border-[#bfb7a6]'
+                      }`}
+                    >
+                      <span
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          locationType === 'pasar' ? 'border-white bg-white/20' : 'border-[#5c5b52]'
+                        }`}
+                      >
+                        {locationType === 'pasar' && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-white" />
+                        )}
+                      </span>
+                      <div>
+                        <span className="font-extrabold text-sm block leading-snug">
+                          Pasar Rakyat Terdata
+                        </span>
+                        <span
+                          className={`text-xs block mt-0.5 ${
+                            locationType === 'pasar' ? 'text-[#f2d6d3]' : 'text-[#5c5b52]'
+                          }`}
+                        >
+                          Pasar tradisional resmi ({regionMarketDir.markets.length} titik di {activeRegion.name})
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={locationType === 'warung'}
+                      onClick={() => setLocationType('warung')}
+                      className={`p-3.5 rounded-xl border-2 text-left transition-all flex items-start gap-3 ${
+                        locationType === 'warung'
+                          ? 'bg-[#67151d] text-white border-[#67151d] shadow-sm'
+                          : 'bg-[#f8f4e9] hover:bg-[#f0ebde] text-[#1e221f] border-[#bfb7a6]'
+                      }`}
+                    >
+                      <span
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          locationType === 'warung' ? 'border-white bg-white/20' : 'border-[#5c5b52]'
+                        }`}
+                      >
+                        {locationType === 'warung' && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-white" />
+                        )}
+                      </span>
+                      <div>
+                        <span className="font-extrabold text-sm block leading-snug">
+                          Warung / Toko Eceran
+                        </span>
+                        <span
+                          className={`text-xs block mt-0.5 ${
+                            locationType === 'warung' ? 'text-[#f2d6d3]' : 'text-[#5c5b52]'
+                          }`}
+                        >
+                          Warung sembako atau toko kelontong lingkungan warga
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Pilih Nama Pasar (Hanya tampil jika memilih Pasar Rakyat Terdata) */}
+                {locationType === 'pasar' ? (
+                  <div>
+                    <label htmlFor="laporMarket" className="block text-[#1e221f] mb-1.5 font-bold">
+                      3. Nama Pasar Rakyat Resmi di {activeRegion.name}
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="laporMarket"
+                        value={selectedMarketName}
+                        onChange={(e) => setSelectedMarketName(e.target.value)}
+                        className="w-full appearance-none pl-4 pr-11 py-3 rounded-xl bg-[#f8f4e9] hover:bg-[#f0ebde] border-2 border-[#bfb7a6] focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] cursor-pointer focus:outline-none transition-colors"
+                      >
+                        {regionMarketDir.markets.map((mkt) => (
+                          <option key={mkt.id} value={mkt.name}>
+                            {mkt.name} — Kec. {mkt.kecamatan}
+                          </option>
+                        ))}
+                      </select>
+                      <svg
+                        className="w-5 h-5 text-[#67151d] pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <span className="text-xs text-[#5c5b52] mt-1.5 block">
+                      Daftar di atas hanya memuat pasar rakyat permanen yang terdata resmi pada{' '}
+                      <strong className="text-[#1e221f]">{regionMarketDir.instansiPengelola}</strong> (bukan pasar kaget).
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-[#f0ebde] border border-[#d6cebe] space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#67151d] block">
+                          Pelaporan Tingkat Warung / Eceran Warga
+                        </span>
+                        <p className="text-xs sm:text-sm text-[#4a4b44] mt-0.5">
+                          Anda tidak perlu memilih daftar pasar. Laporan akan langsung dicatat sebagai harga transaksi warung di wilayah{' '}
+                          <strong className="text-[#1e221f]">{activeRegion.name}</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="laporWarungArea" className="block text-xs font-bold text-[#1e221f] mb-1">
+                        Kecamatan / Kelurahan Lokasi Warung (Opsional)
+                      </label>
+                      <input
+                        id="laporWarungArea"
+                        type="text"
+                        placeholder={`Contoh: Kec. Coblong, ${activeRegion.name}`}
+                        value={warungAreaNote}
+                        onChange={(e) => setWarungAreaNote(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#fffdf7] border border-[#bfb7a6] focus:border-[#67151d] text-xs sm:text-sm text-[#1e221f] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Komoditas Pangan Pokok */}
                 <div>
                   <label htmlFor="laporComm" className="block text-[#1e221f] mb-1.5 font-bold">
-                    Komoditas Pangan Pokok
+                    {locationType === 'pasar' ? '4.' : '3.'} Komoditas Pangan Pokok
                   </label>
-                  <select
-                    id="laporComm"
-                    value={commodity}
-                    onChange={(e) => setCommodity(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-[#f8f4e9] border-2 border-[#bfb7a6] focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] focus:outline-none"
-                  >
-                    {commoditiesData.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} (Satuan: /{c.satuan})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="laporMarket" className="block text-[#1e221f] mb-1.5 font-bold">
-                    Lokasi Pasar Rakyat
-                  </label>
-                  <select
-                    id="laporMarket"
-                    value={market}
-                    onChange={(e) => setMarket(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-[#f8f4e9] border-2 border-[#bfb7a6] focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] focus:outline-none"
-                  >
-                    <option value="Pasar Ciroyom, Kota Bandung">Pasar Ciroyom, Kota Bandung</option>
-                    <option value="Pasar Baru, Kota Bandung">Pasar Baru, Kota Bandung</option>
-                    <option value="Pasar Cikarang Pusat, Kab. Bekasi">Pasar Cikarang Pusat, Kab. Bekasi</option>
-                    <option value="Pasar Kranji Baru, Kota Bekasi">Pasar Kranji Baru, Kota Bekasi</option>
-                    <option value="Pasar Guntur, Kab. Garut">Pasar Guntur, Kab. Garut</option>
-                    <option value="Pasar Johar, Kab. Karawang">Pasar Johar, Kab. Karawang</option>
-                    <option value="Pasar Kebon Kembang, Kota Bogor">Pasar Kebon Kembang, Kota Bogor</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="laporPrice" className="block text-[#1e221f] mb-1.5 font-bold">
-                    Harga Eceran yang Ditemukan (Rp)
-                  </label>
-                  <input
-                    id="laporPrice"
-                    type="number"
-                    required
-                    placeholder="Contoh: 48000"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-[#f8f4e9] border-2 border-[#bfb7a6] focus:border-[#67151d] font-mono text-base font-bold text-[#1e221f] focus:outline-none"
-                  />
+                  <div className="relative">
+                    <select
+                      id="laporComm"
+                      value={commodity}
+                      onChange={(e) => setCommodity(e.target.value)}
+                      className="w-full appearance-none pl-4 pr-11 py-3 rounded-xl bg-[#f8f4e9] hover:bg-[#f0ebde] border-2 border-[#bfb7a6] focus:border-[#67151d] text-sm sm:text-base font-bold text-[#1e221f] cursor-pointer focus:outline-none transition-colors"
+                    >
+                      {PUBLIC_COMMODITIES.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} (Satuan: /{c.satuan})
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="w-5 h-5 text-[#67151d] pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
                   <span className="text-xs text-[#5c5b52] mt-1.5 block">
-                    Masukkan harga per satuan komoditas sesuai yang Anda temukan di pasar hari ini.
+                    Referensi acuan pemerintah ({selectedComm.jenisAcuan === 'HET' ? 'HET' : 'HAP'}):{' '}
+                    <strong className="font-mono text-[#1e221f]">
+                      Rp {selectedComm.hargaAcuanRp.toLocaleString('id-ID')}/{selectedComm.satuan}
+                    </strong>
                   </span>
                 </div>
 
+                {/* 5. Harga Eceran yang Ditemukan (Tanpa Spinner & Bebas Perubahan Scroll Trackpad) */}
+                <div>
+                  <label htmlFor="laporPrice" className="block text-[#1e221f] mb-1.5 font-bold">
+                    {locationType === 'pasar' ? '5.' : '4.'} Harga Eceran yang Ditemukan (Rp)
+                  </label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 font-mono font-bold text-sm sm:text-base text-[#5c5b52] pointer-events-none select-none">
+                      Rp
+                    </span>
+                    <input
+                      id="laporPrice"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="off"
+                      required
+                      placeholder={`Contoh: ${selectedComm.hargaAcuanRp}`}
+                      value={price}
+                      onChange={handlePriceChange}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      className="w-full pl-11 pr-20 py-3 rounded-xl bg-[#f8f4e9] border-2 border-[#bfb7a6] focus:border-[#67151d] font-mono text-base font-bold text-[#1e221f] focus:outline-none"
+                    />
+                    <span className="absolute right-4 font-mono text-xs sm:text-sm font-bold text-[#5c5b52] pointer-events-none select-none">
+                      /{selectedComm.satuan}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 text-xs text-[#5c5b52]">
+                    <span>Masukkan angka harga per {selectedComm.satuan} tanpa titik atau koma.</span>
+                    {formattedPricePreview && (
+                      <span className="font-mono font-bold text-[#67151d] bg-[#f0ebde] px-2 py-0.5 rounded">
+                        Terbaca: {formattedPricePreview}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 6. Keterangan Tambahan */}
                 <div>
                   <label htmlFor="laporNotes" className="block text-[#1e221f] mb-1.5 font-bold">
                     Keterangan Tambahan (Opsional)
@@ -236,7 +470,11 @@ export default function LaporPage() {
                   <textarea
                     id="laporNotes"
                     rows={3}
-                    placeholder="Contoh: Harga di blok pedagang eceran pintu timur."
+                    placeholder={
+                      locationType === 'pasar'
+                        ? 'Contoh: Harga di blok pedagang eceran pintu timur.'
+                        : 'Contoh: Harga beli eceran di warung sembako RT setempat.'
+                    }
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-[#f8f4e9] border-2 border-[#bfb7a6] focus:border-[#67151d] text-sm text-[#1e221f] focus:outline-none"
@@ -252,7 +490,7 @@ export default function LaporPage() {
                     <span>Memproses Laporan...</span>
                   ) : (
                     <>
-                      <span>Kirim Laporan Harga Pasar</span>
+                      <span>Kirim Laporan Harga {locationType === 'pasar' ? 'Pasar' : 'Warung'}</span>
                       <span aria-hidden="true">&rarr;</span>
                     </>
                   )}
@@ -309,11 +547,11 @@ export default function LaporPage() {
               <ol className="space-y-3 leading-relaxed">
                 <li>
                   <strong className="text-[#1e221f] block">1. Lokasi Diperiksa</strong>
-                  Sistem memeriksa kesesuaian lokasi laporan dengan area pasar yang dipilih (radius koordinat maksimal 3 km).
+                  Sistem memeriksa kesesuaian lokasi laporan dengan area pasar rakyat resmi atau wilayah kecamatan warung yang dipilih (radius koordinat maksimal 3 km).
                 </li>
                 <li>
                   <strong className="text-[#1e221f] block">2. Laporan Dibandingkan</strong>
-                  Laporan dari warga lain pada pasar dan periode waktu yang sama digunakan sebagai pembanding (ketentuan minimal 10 laporan independen).
+                  Laporan dari warga lain pada pasar/wilayah dan periode waktu yang sama digunakan sebagai pembanding (ketentuan minimal 10 laporan independen).
                 </li>
                 <li>
                   <strong className="text-[#1e221f] block">3. Harga Tidak Wajar Diperiksa</strong>

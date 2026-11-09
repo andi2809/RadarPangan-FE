@@ -39,7 +39,7 @@ export const ChallengeSection: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-[#fffdf7] p-2.5 rounded-lg border border-[#e2dcd0]">
                   <span className="text-[#5c5b52] block">Sumber &amp; Acuan</span>
-                  <strong className="text-[#1e221f] font-semibold">Bapanas / PIHPS BI</strong>
+                  <strong className="text-[#1e221f] font-semibold">Panel Harga Bapanas</strong>
                 </div>
                 <div className="bg-[#fffdf7] p-2.5 rounded-lg border border-[#e2dcd0]">
                   <span className="text-[#5c5b52] block">Tanggal Observasi</span>

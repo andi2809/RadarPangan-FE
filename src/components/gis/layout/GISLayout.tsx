@@ -16,7 +16,7 @@ export function GISLayout({
             <span className="rounded-full bg-[#FFFDF7] px-2 py-0.5 font-bold uppercase tracking-wide text-[#67151D]">
               Data demo
             </span>
-            <span>Angka bersifat ilustratif, bukan data resmi. Sumber ilustratif: Bapanas, PIHPS BI, BPS.</span>
+            <span>Angka bersifat ilustratif untuk demonstrasi. Sumber data acuan: Panel Harga Bapanas, JDIH &amp; Galura Jabarprov.</span>
           </div>
           {children}
         </div>

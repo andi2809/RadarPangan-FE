@@ -1,7 +1,7 @@
 [
   {
     "id": "beras_medium",
-    "name": "Beras Medium (Pasar)",
+    "name": "Beras Medium",
     "category": "Beras",
     "satuan": "kg",
     "jenisAcuan": "HET",
@@ -13,12 +13,12 @@
   },
   {
     "id": "beras_sphp",
-    "name": "Beras SPHP Bulog (Acuan)",
+    "name": "Beras Program SPHP",
     "category": "Beras",
     "satuan": "kg",
     "jenisAcuan": "HET",
     "hargaAcuanRp": 13500,
-    "deskripsi": "Beras Stabilisasi Pasokan dan Harga Pangan Bulog, acuan resmi intervensi HET",
+    "deskripsi": "Beras Stabilisasi Pasokan dan Harga Pangan pemerintah, acuan resmi intervensi HET",
     "sumberDefault": "sp2kp",
     "jenisHarga": "acuan",
     "subKomoditas": "sphp"
@@ -61,19 +61,19 @@
   },
   {
     "id": "minyakita",
-    "name": "Minyakita (Acuan HET)",
+    "name": "Minyak Kemasan",
     "category": "Minyak Nabati",
     "satuan": "liter",
     "jenisAcuan": "HET",
     "hargaAcuanRp": 15700,
-    "deskripsi": "Minyak goreng kemasan rakyat Minyakita, pemantauan kepatuhan HET SP2KP (Permendag 18/2024)",
+    "deskripsi": "Minyak goreng kemasan sederhana tingkat konsumen, pemantauan kepatuhan HET SP2KP (Permendag 18/2024)",
     "sumberDefault": "sp2kp",
     "jenisHarga": "acuan",
     "subKomoditas": "standar"
   },
   {
     "id": "minyak_goreng_curah",
-    "name": "Minyak Goreng Curah (Pasar)",
+    "name": "Minyak Curah",
     "category": "Minyak Nabati",
     "satuan": "liter",
     "jenisAcuan": "HAP",

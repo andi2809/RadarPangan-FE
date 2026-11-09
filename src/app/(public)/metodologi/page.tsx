@@ -34,31 +34,31 @@ export default function MetodologiPage() {
                 1. Badan Pangan Nasional (Bapanas)
               </strong>
               <p>
-                Menyediakan referensi harga rata-rata konsumen tingkat kabupaten/kota melalui Panel Harga Pangan, serta standar Harga Acuan Penjualan (HAP) dan Harga Eceran Tertinggi (HET).
+                Satu-satunya sumber resmi harga pangan dan komoditas harian tingkat konsumen di 27 Kabupaten/Kota Jawa Barat melalui Panel Harga Pangan, serta ketetapan resmi Harga Acuan Penjualan (HAP) dan Harga Eceran Tertinggi (HET).
               </p>
             </div>
             <div className="p-4 rounded-xl bg-[#f8f4e9] border border-[#e2dcd0] space-y-1">
               <strong className="text-[#1e221f] text-base block">
-                2. Bank Indonesia (PIHPS Nasional)
+                2. Pemprov Jabar (JDIH &amp; Galura Jabarprov)
               </strong>
               <p>
-                Pusat Informasi Harga Pangan Strategis digunakan sebagai pembanding perkembangan harga harian komoditas pangan strategis pada pasar tradisional.
+                Rujukan regulasi resmi Keputusan Gubernur Jawa Barat terkait penetapan Upah Minimum Kabupaten/Kota (UMK 2026) di 27 daerah yang dipublikasikan melalui JDIH Pemprov Jabar dan warta resmi Galura Jabarprov untuk analisis rasio beban daya beli masyarakat.
               </p>
             </div>
             <div className="p-4 rounded-xl bg-[#f8f4e9] border border-[#e2dcd0] space-y-1">
               <strong className="text-[#1e221f] text-base block">
-                3. Badan Pusat Statistik (BPS)
+                3. Badan Informasi Geospasial (BIG)
               </strong>
               <p>
-                Data Upah Minimum Kabupaten/Kota (UMK), populasi, dan garis kemiskinan digunakan untuk menghitung indikator keterjangkauan harga pangan antardaerah.
+                Sumber data geospasial batas wilayah administrasi 27 kabupaten/kota di Jawa Barat (GeoJSON) berbasis layanan resmi Ina-Geoportal / geoservice.big.go.id untuk visualisasi pemetaan persebaran harga Early Warning System.
               </p>
             </div>
             <div className="p-4 rounded-xl bg-[#f8f4e9] border border-[#e2dcd0] space-y-1">
               <strong className="text-[#1e221f] text-base block">
-                4. BIG &amp; Kemendagri
+                4. Pelaporan Masyarakat Terverifikasi
               </strong>
               <p>
-                Data geospasial batas administrasi 38 provinsi dan 507 kabupaten/kota (GeoJSON) digunakan untuk visualisasi peta persebaran harga.
+                Data aduan harga aktual pasar dari warga yang telah melewati 3 saringan konsensus (1 perangkat 1 suara, kuorum radius pasar, dan uji outlier MAD) sebagai pembanding lapangan (Dual-Source).
               </p>
             </div>
           </div>

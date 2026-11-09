@@ -6,6 +6,29 @@ import Link from 'next/link';
 export const LandingHeader: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const scrollToAnchor = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    if (typeof window !== 'undefined') {
+      const isHome = window.location.pathname === '/' || window.location.pathname === '';
+      if (isHome) {
+        e.preventDefault();
+        const el = document.getElementById(targetId);
+        if (el) {
+          const headerOffset = 84;
+          const elementPosition = el.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: Math.max(0, offsetPosition),
+            behavior: 'smooth',
+          });
+          window.history.replaceState(null, '', `#${targetId}`);
+        } else if (targetId === 'beranda') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.history.replaceState(null, '', '#beranda');
+        }
+      }
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-[#fffdf7]/95 backdrop-blur-md border-b border-[#ded8c8]">
       <nav className="public-container flex items-center justify-between h-20 gap-3" aria-label="Navigasi Utama">
@@ -38,39 +61,32 @@ export const LandingHeader: React.FC = () => {
           </div>
         </Link>
 
-        {/* Desktop Nav Links */}
-        <div className="hidden xl:flex items-center gap-4 2xl:gap-5 text-[13.5px] 2xl:text-sm font-semibold text-[#2d312e]">
-          <Link href="/#beranda" className="hover:text-[#67151d] transition-colors whitespace-nowrap">
+        {/* Desktop Nav Links (Hanya: Beranda, Metodologi, Peta Wilayah) */}
+        <div className="hidden md:flex items-center gap-6 text-[14px] font-semibold text-[#2d312e]">
+          <Link
+            href="/#beranda"
+            onClick={(e) => scrollToAnchor(e, 'beranda')}
+            className="hover:text-[#67151d] transition-colors whitespace-nowrap"
+          >
             Beranda
-          </Link>
-          <Link href="/#peta" className="hover:text-[#67151d] transition-colors whitespace-nowrap">
-            Peta Wilayah
-          </Link>
-          <Link href="/#instrumen" className="hover:text-[#67151d] transition-colors whitespace-nowrap">
-            Instrumen
-          </Link>
-          <Link href="/#sinergi" className="hover:text-[#67151d] transition-colors whitespace-nowrap">
-            Distribusi &amp; Sinergi
-          </Link>
-          <Link href="/harga" className="hover:text-[#67151d] transition-colors whitespace-nowrap">
-            Detail Harga
           </Link>
           <Link href="/metodologi" className="hover:text-[#67151d] transition-colors whitespace-nowrap">
             Metodologi
           </Link>
+          <Link
+            href="/#peta"
+            onClick={(e) => scrollToAnchor(e, 'peta')}
+            className="hover:text-[#67151d] transition-colors whitespace-nowrap"
+          >
+            Peta Wilayah
+          </Link>
         </div>
 
-        {/* Right CTA Buttons & Mobile Toggle */}
-        <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
-          <Link
-            href="/harga"
-            className="hidden md:inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-[#f0ebde] hover:bg-[#e5decb] text-[#1e221f] font-bold text-xs border border-[#cfc8b8] transition-colors whitespace-nowrap"
-          >
-            <span>Jelajahi Peta Wilayah</span>
-          </Link>
+        {/* Right CTA Button (Laporkan Harga Pasar) & Mobile Toggle */}
+        <div className="flex items-center gap-3 flex-shrink-0">
           <Link
             href="/lapor"
-            className="hidden sm:inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-[#67151d] hover:bg-[#4c0d15] text-white font-bold text-xs shadow-sm transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 py-2.5 px-4 rounded-xl bg-[#67151d] hover:bg-[#4c0d15] text-white font-bold text-xs sm:text-sm shadow-sm transition-colors whitespace-nowrap"
           >
             <span>Laporkan Harga Pasar</span>
           </Link>
@@ -78,7 +94,7 @@ export const LandingHeader: React.FC = () => {
           {/* Mobile & Tablet Menu Button */}
           <button
             type="button"
-            className="xl:hidden p-2.5 text-[#1e221f] rounded-xl border border-[#cfc8b8] bg-[#fffdf7] hover:bg-[#f0ebde] transition-colors flex-shrink-0"
+            className="md:hidden p-2 text-[#1e221f] rounded-xl border border-[#cfc8b8] bg-[#fffdf7] hover:bg-[#f0ebde] transition-colors flex-shrink-0"
             aria-label={mobileMenuOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
             aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -101,70 +117,41 @@ export const LandingHeader: React.FC = () => {
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="xl:hidden bg-[#fffdf7] border-b border-[#ded8c8] px-4 pt-3 pb-6 shadow-lg">
+        <div className="md:hidden bg-[#fffdf7] border-b border-[#ded8c8] px-4 pt-3 pb-6 shadow-lg">
           <div className="public-container flex flex-col space-y-1 text-base font-semibold text-[#1e221f]">
             <Link
               href="/#beranda"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={(e) => {
+                scrollToAnchor(e, 'beranda');
+                setMobileMenuOpen(false);
+              }}
               className="py-2.5 px-3 rounded-lg hover:bg-[#f0ebde] hover:text-[#67151d]"
             >
               Beranda
-            </Link>
-            <Link
-              href="/#peta"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2.5 px-3 rounded-lg hover:bg-[#f0ebde] hover:text-[#67151d]"
-            >
-              Persebaran Harga Nasional
-            </Link>
-            <Link
-              href="/#instrumen"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2.5 px-3 rounded-lg hover:bg-[#f0ebde] hover:text-[#67151d]"
-            >
-              Empat Instrumen Inti
-            </Link>
-            <Link
-              href="/#sinergi"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2.5 px-3 rounded-lg hover:bg-[#f0ebde] hover:text-[#67151d]"
-            >
-              Distribusi &amp; Sinergi Kebijakan
-            </Link>
-            <Link
-              href="/harga"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2.5 px-3 rounded-lg hover:bg-[#f0ebde] hover:text-[#67151d]"
-            >
-              Detail Harga Wilayah
-            </Link>
-            <Link
-              href="/lapor"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2.5 px-3 rounded-lg hover:bg-[#f0ebde] hover:text-[#67151d]"
-            >
-              Lapor Harga Pasar
             </Link>
             <Link
               href="/metodologi"
               onClick={() => setMobileMenuOpen(false)}
               className="py-2.5 px-3 rounded-lg hover:bg-[#f0ebde] hover:text-[#67151d]"
             >
-              Metodologi &amp; Sumber Data
+              Metodologi
+            </Link>
+            <Link
+              href="/#peta"
+              onClick={(e) => {
+                scrollToAnchor(e, 'peta');
+                setMobileMenuOpen(false);
+              }}
+              className="py-2.5 px-3 rounded-lg hover:bg-[#f0ebde] hover:text-[#67151d]"
+            >
+              Peta Wilayah
             </Link>
 
-            <div className="pt-4 mt-2 border-t border-[#ded8c8] grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Link
-                href="/harga"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-3 px-4 rounded-xl bg-[#f0ebde] text-[#1e221f] font-bold text-sm border border-[#cfc8b8]"
-              >
-                Jelajahi Peta Wilayah
-              </Link>
+            <div className="pt-4 mt-2 border-t border-[#ded8c8]">
               <Link
                 href="/lapor"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-3 px-4 rounded-xl bg-[#67151d] text-white font-bold text-sm"
+                className="w-full block text-center py-3 px-4 rounded-xl bg-[#67151d] text-white font-bold text-sm shadow-sm"
               >
                 Laporkan Harga Pasar
               </Link>

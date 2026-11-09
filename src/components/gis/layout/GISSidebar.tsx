@@ -100,7 +100,7 @@ export function GISSidebar() {
       <div className="border-t border-[#DED8CD] bg-[#F7F5EF]/80 p-4">
         <p className="text-xs font-bold text-[#24231F]">Sumber Data Terbuka</p>
         <p className="mt-1 text-[11px] text-[#777168]">
-          Bapanas · Bank Indonesia · BPS · BIG
+          Bapanas · JDIH &amp; Galura Jabar · BIG
         </p>
       </div>
     </aside>

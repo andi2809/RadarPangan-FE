@@ -3,8 +3,8 @@ import { HeroSection } from '../../components/public/HeroSection';
 import { ChallengeSection } from '../../components/public/ChallengeSection';
 import { GisMapSection } from '../../components/public/GisMapSection';
 import { InstrumentsSection } from '../../components/public/InstrumentsSection';
-import { SynergySection } from '../../components/public/SynergySection';
 import { CrowdsourceSection } from '../../components/public/CrowdsourceSection';
+import { BehindTheScenesSection } from '../../components/public/BehindTheScenesSection';
 import { TrustSection } from '../../components/public/TrustSection';
 import { CtaSection } from '../../components/public/CtaSection';
 
@@ -26,14 +26,14 @@ export default function HomePage() {
       {/* 3. National Food Price Map & Historical Chart Section */}
       <GisMapSection />
 
-      {/* 4. Four Core Instruments Section */}
+      {/* 4. Affordability & Acuan HAP/HET (Citizen Perspective) */}
       <InstrumentsSection />
 
-      {/* 5. Smart Distribution & National Food Policy Synergy Section */}
-      <SynergySection />
-
-      {/* 6. Dual-User Interface & Citizen Report Verification Section */}
+      {/* 5. Citizen Crowdsourced Reporting & 3-Step Verification */}
       <CrowdsourceSection />
+
+      {/* 6. Behind The Scenes: Dual-Lens Architecture & Anti-Panic Buying Protocol */}
+      <BehindTheScenesSection />
 
       {/* 7. Accountability & Traceability Pillars */}
       <TrustSection />
