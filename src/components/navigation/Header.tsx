@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header
-      className={`h-16 px-6 border-b flex items-center justify-between shrink-0 transition-colors select-none relative z-40 ${
+      className={`sticky top-0 z-40 h-16 px-6 border-b flex items-center justify-between shrink-0 transition-colors select-none ${
         isCommandCenter
           ? 'bg-slate-900 border-slate-800 text-slate-100'
           : 'bg-white border-slate-200 text-slate-900'

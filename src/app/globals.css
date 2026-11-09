@@ -11,8 +11,7 @@ body {
   background-color: var(--bg);
   color: var(--ink);
   font-family: var(--font-plex-sans);
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow-x: clip;
   user-select: auto;
   -webkit-font-smoothing: antialiased;
 }

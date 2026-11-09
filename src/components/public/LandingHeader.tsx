@@ -1,10 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export const LandingHeader: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 8);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const scrollToAnchor = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     if (typeof window !== 'undefined') {
@@ -30,7 +40,21 @@ export const LandingHeader: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#fffdf7]/95 backdrop-blur-md border-b border-[#ded8c8]">
+    <header
+      className={`sticky top-0 z-50 w-full transition-all duration-200 border-b ${
+        isScrolled
+          ? 'border-[#cfc8b8] shadow-[0_4px_20px_rgba(30,34,31,0.07)]'
+          : 'border-[#ded8c8]'
+      }`}
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        backgroundColor: isScrolled ? 'rgba(255, 253, 247, 0.98)' : 'rgba(255, 253, 247, 0.94)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+      }}
+    >
       <nav className="public-container flex items-center justify-between h-20 gap-3" aria-label="Navigasi Utama">
         {/* Brand Logo (Matched with Footer) */}
         <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group flex-shrink-0 min-w-0">
