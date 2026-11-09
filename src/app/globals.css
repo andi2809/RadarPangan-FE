@@ -47,27 +47,10 @@ input[type="number"] {
   background: #B8B0A2;
 }
 
+
+
 @media print {
-  body * {
-    visibility: hidden;
-  }
-
-  .print-report,
-  .print-report * {
-    visibility: visible;
-  }
-
-  .print-report {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
-    max-width: none;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-  }
-
-  .print-report .no-print {
+  .no-print {
     display: none !important;
   }
 }

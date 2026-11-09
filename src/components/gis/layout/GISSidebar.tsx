@@ -6,7 +6,6 @@ import {
   Wheat,
   Map,
   ChartNoAxesCombined,
-  FileText,
   ShieldCheck,
   FlaskConical,
   ChevronRight,
@@ -22,13 +21,12 @@ const menus = [
         href: "/dashboard/wilayah",
         icon: ChartNoAxesCombined,
       },
-      { label: "Template Laporan TPID", href: "/dashboard/laporan", icon: FileText },
     ],
   },
   {
     label: "Validasi & Simulasi",
     items: [
-      { label: "Approval Laporan Warga", href: "/dashboard/laporan-warga", icon: ShieldCheck },
+      { label: "Pemantauan Laporan Pasar", href: "/dashboard/laporan-warga", icon: ShieldCheck },
       { label: "What-If Sandbox", href: "/dashboard/sandbox", icon: FlaskConical },
     ],
   },

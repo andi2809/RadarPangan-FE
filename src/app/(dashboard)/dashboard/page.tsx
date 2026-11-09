@@ -8,11 +8,8 @@ import {
   ShieldCheck,
   Upload,
   RotateCcw,
-  Printer,
   Sparkles,
   FileSpreadsheet,
-  X,
-  Truck,
 } from 'lucide-react';
 import type { FeatureCollection } from 'geojson';
 import { GISLayout } from '@/components/gis/layout/GISLayout';
@@ -79,16 +76,7 @@ export default function DashboardPage() {
   const [citizenReports, setCitizenReports] = useState<ApprovedCitizenReport[]>([]);
   const [csvOverrides, setCsvOverrides] = useState<Record<string, CustomRegionOverride>>({});
   const [uploadBanner, setUploadBanner] = useState<string | null>(null);
-  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('report') === '1') {
-      setIsReportModalOpen(true);
-    }
-  }, []);
 
   useEffect(() => {
     loadIndonesiaGeoJson()
@@ -392,13 +380,6 @@ export default function DashboardPage() {
     [commodities, commodity, allTelemetry, selectedRegionId]
   );
 
-  // Critical Regions List for TPID Policy Report Modal
-  const criticalRegionsSummary = useMemo(() => {
-    return Object.values(allTelemetry)
-      .filter((t) => t.predictionH7.status === 'kritis' || t.currentPrice.status === 'kritis')
-      .sort((a, b) => b.predictionH7.selisihPersen - a.predictionH7.selisihPersen);
-  }, [allTelemetry]);
-
   const affordability = activeRegionTelemetry?.affordability;
 
   const handleSelectRegion = useCallback((regionId: string) => {
@@ -499,7 +480,7 @@ export default function DashboardPage() {
       {/* Header Judul Halaman */}
       <GISPageHeader />
 
-      {/* BLOK 5: PANEL UTILITAS ADMIN & TESTING (Upload CSV, Reset Data, Toggle Musiman, Cetak Laporan TPID) */}
+      {/* BLOK 5: PANEL UTILITAS ADMIN & TESTING (Upload CSV, Reset Data, Toggle Musiman) */}
       <section className="rounded-xl border border-[#DED8CD] bg-[#FFFDF7] p-4 shadow-sm">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
           <div>
@@ -507,7 +488,7 @@ export default function DashboardPage() {
               Blok 5 · Panel Utilitas Admin &amp; Pengujian Rumus Deterministik
             </span>
             <h2 className="mt-0.5 text-sm font-extrabold text-[#24231F]">
-              Simulasi Musiman (M_musim), Upload Dataset CSV Uji &amp; Cetak Rekomendasi TPID
+              Simulasi Musiman (M_musim) &amp; Upload Dataset CSV Uji
             </h2>
           </div>
 
@@ -571,16 +552,6 @@ export default function DashboardPage() {
             >
               <RotateCcw size={13} />
               <span>Reset Data</span>
-            </button>
-
-            {/* 3. Tombol Cetak / Lihat Template Laporan TPID */}
-            <button
-              type="button"
-              onClick={() => setIsReportModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#67151D] px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#4C0D15]"
-            >
-              <Printer size={14} />
-              <span>Cetak Template Laporan TPID</span>
             </button>
           </div>
         </div>
@@ -687,151 +658,6 @@ export default function DashboardPage() {
           hasData={hasData}
         />
       </RegionDetailSection>
-
-      {/* MODAL TEMPLATE LAPORAN KEBIJAKAN TPID (Print-Ready PDF) */}
-      {isReportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-          <div className="print-report relative w-full max-w-3xl rounded-xl border border-[#DED8CD] bg-[#FFFDF7] p-6 shadow-2xl">
-            <div className="flex items-start justify-between border-b border-[#DED8CD] pb-4">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#67151D]">
-                  Dokumen Pendukung Keputusan (Decision Support System)
-                </span>
-                <h3 className="mt-1 text-lg font-extrabold text-[#24231F]">
-                  Nota Dinas &amp; Rekomendasi Intervensi Stabilisasi Harga Pangan TPID
-                </h3>
-                <p className="text-xs text-[#706B62]">
-                  Provinsi Jawa Barat · Komoditas: {selectedCommodityObj?.name} · Skenario:{" "}
-                  {SEASONAL_MULTIPLIERS[seasonalScenario].label}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(false)}
-                className="no-print rounded-lg border border-[#DED8CD] p-1.5 text-[#706B62] hover:bg-[#F0EBDE]"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-4 text-xs text-[#24231F]">
-              {/* Ringkasan Wilayah Terpilih */}
-              <div className="rounded-lg border border-[#DED8CD] bg-white p-4">
-                <h4 className="font-bold uppercase tracking-wider text-[#67151D]">
-                  1. Fokus Evaluasi Wilayah: {activeRegionName}
-                </h4>
-                <div className="mt-2.5 grid grid-cols-2 gap-3 sm:grid-cols-4 font-mono">
-                  <div>
-                    <span className="block font-sans text-[10px] text-[#706B62]">Harga Resmi (P_t)</span>
-                    <strong className="text-sm">Rp{numberFormat.format(currentPriceRp)}</strong>
-                  </div>
-                  <div>
-                    <span className="block font-sans text-[10px] text-[#706B62]">Proyeksi H+7 (P̂_t+7)</span>
-                    <strong className="text-sm text-[#B52D26]">
-                      Rp{numberFormat.format(forecastPriceRp)}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="block font-sans text-[10px] text-[#706B62]">UMK Daerah</span>
-                    <strong className="text-sm">
-                      Rp{numberFormat.format(activeRegionTelemetry?.region?.umk2026 ?? 0)}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="block font-sans text-[10px] text-[#706B62]">Rasio Beban UMK</span>
-                    <strong className="text-sm text-[#67151D]">
-                      {activeCommodityUmkBurden
-                        ? `${activeCommodityUmkBurden.rasioBebanUmkPct}% (${activeCommodityUmkBurden.statusKeterjangkauan})`
-                        : '—'}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabel Wilayah Prioritas Intervensi */}
-              <div className="rounded-lg border border-[#DED8CD] bg-white p-4">
-                <h4 className="font-bold uppercase tracking-wider text-[#67151D]">
-                  2. Daftar Wilayah Prioritas Intervensi H+7 ({criticalRegionsSummary.length} Kab/Kota Kritis)
-                </h4>
-                <div className="mt-2 overflow-x-auto">
-                  <table className="w-full text-left text-[11px]">
-                    <thead>
-                      <tr className="border-b border-[#DED8CD] text-[10px] text-[#706B62]">
-                        <th className="py-1.5">Wilayah</th>
-                        <th className="py-1.5">Harga Saat Ini</th>
-                        <th className="py-1.5">Proyeksi H+7</th>
-                        <th className="py-1.5">Deviasi HAP/HET</th>
-                        <th className="py-1.5">UMK Wilayah</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#F0ECE4] font-mono">
-                      {criticalRegionsSummary.slice(0, 6).map((item) => (
-                        <tr key={item.region.id}>
-                          <td className="py-1.5 font-sans font-bold">{item.region.name}</td>
-                          <td className="py-1.5">
-                            Rp{numberFormat.format(item.currentPrice.hargaAktualRp)}
-                          </td>
-                          <td className="py-1.5 font-bold text-[#B52D26]">
-                            Rp{numberFormat.format(item.predictionH7.hargaPrediksiH7Rp)}
-                          </td>
-                          <td className="py-1.5 text-[#B52D26]">
-                            +{item.predictionH7.selisihPersen}%
-                          </td>
-                          <td className="py-1.5">
-                            Rp{numberFormat.format(item.region.umk2026)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Instruksi Rute Pengiriman Pasokan */}
-              <div className="rounded-lg border border-[#287653]/30 bg-[#EAF2EA] p-4">
-                <h4 className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#287653]">
-                  <Truck size={14} />
-                  3. Rekomendasi Kerjasama Antar Daerah (KAD) &amp; Rute Pasokan
-                </h4>
-                {activeSupplyRoutes.length > 0 ? (
-                  <ul className="mt-2 space-y-1.5 text-xs">
-                    {activeSupplyRoutes.map((route, i) => (
-                      <li key={route.id} className="font-medium">
-                        {i + 1}. Kirim pasokan dari <strong>{route.sourceRegionName}</strong> (Surplus{" "}
-                        {route.surplusAvailableTon} ton) menuju <strong>{route.targetRegionName}</strong>{" "}
-                        — Jarak {route.jarakKm} km (~{route.estimasiWaktuJam} jam), estimasi biaya logistik Rp
-                        {numberFormat.format(route.biayaTransportEstRp)}.
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-1.5 text-xs text-[#4D6655]">
-                    Pilih wilayah berstatus Waspada/Kritis pada peta untuk menampilkan koridor pengiriman pasokan otomatis.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="no-print mt-5 flex items-center justify-end gap-2.5 border-t border-[#DED8CD] pt-4">
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(false)}
-                className="rounded-lg border border-[#DED8CD] bg-white px-4 py-2 text-xs font-bold text-[#706B62] hover:bg-[#F0EBDE]"
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#67151D] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#4C0D15]"
-              >
-                <Printer size={14} />
-                <span>Cetak / Simpan PDF</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </GISLayout>
   );
 }
