@@ -50,7 +50,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kab. Cianjur',
     instansiPengelola: 'UPTD Pasar Diskuperdagin Kab. Cianjur',
     markets: [
-      { id: 'psr-cjr-01', name: 'Pasar Induk Pasirhayam', kecamatan: 'Cilaku', pengelola: 'UPTD Pasar Induk Pasirhayam' },
+      { id: 'psr-cianjur-01', name: 'Pasar Induk Pasirhayam', kecamatan: 'Cilaku', pengelola: 'UPTD Pasar Induk Pasirhayam' },
       { id: 'psr-cjr-02', name: 'Pasar Muka Cianjur', kecamatan: 'Cianjur', pengelola: 'UPTD Pasar Muka' },
       { id: 'psr-cjr-03', name: 'Pasar Cipanas', kecamatan: 'Cipanas', pengelola: 'UPTD Pasar Cipanas' },
       { id: 'psr-cjr-04', name: 'Pasar Ciranjang', kecamatan: 'Ciranjang', pengelola: 'UPTD Pasar Ciranjang' },
@@ -75,7 +75,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kab. Garut',
     instansiPengelola: 'UPT Pasar Disperindag Kab. Garut',
     markets: [
-      { id: 'psr-grt-01', name: 'Pasar Induk Guntur Ciawitali', kecamatan: 'Tarogong Kidul', pengelola: 'UPT Pasar Wilayah I' },
+      { id: 'psr-garutkab-01', name: 'Pasar Induk Guntur Ciawitali', kecamatan: 'Tarogong Kidul', pengelola: 'UPT Pasar Wilayah I' },
       { id: 'psr-grt-02', name: 'Pasar Kadungora', kecamatan: 'Kadungora', pengelola: 'UPT Pasar Wilayah II' },
       { id: 'psr-grt-03', name: 'Pasar Wanaraja', kecamatan: 'Wanaraja', pengelola: 'UPT Pasar Wilayah III' },
       { id: 'psr-grt-04', name: 'Pasar Samarang', kecamatan: 'Samarang', pengelola: 'UPT Pasar Wilayah IV' },
@@ -88,7 +88,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kab. Tasikmalaya',
     instansiPengelola: 'UPTD Pasar Diskopukmindag Kab. Tasikmalaya',
     markets: [
-      { id: 'psr-tsmkab-01', name: 'Pasar Singaparna', kecamatan: 'Singaparna', pengelola: 'UPTD Pasar Singaparna' },
+      { id: 'psr-tsm-01', name: 'Pasar Singaparna', kecamatan: 'Singaparna', pengelola: 'UPTD Pasar Singaparna' },
       { id: 'psr-tsmkab-02', name: 'Pasar Ciawi Tasikmalaya', kecamatan: 'Ciawi', pengelola: 'UPTD Pasar Ciawi' },
       { id: 'psr-tsmkab-03', name: 'Pasar Manonjaya', kecamatan: 'Manonjaya', pengelola: 'UPTD Pasar Manonjaya' },
       { id: 'psr-tsmkab-04', name: 'Pasar Rajapolah', kecamatan: 'Rajapolah', pengelola: 'UPTD Pasar Rajapolah' },
@@ -122,7 +122,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kab. Cirebon',
     instansiPengelola: 'Bidang Pasar Disperdagin Kab. Cirebon',
     markets: [
-      { id: 'psr-crbkab-01', name: 'Pasar Sumber', kecamatan: 'Sumber', pengelola: 'UPT Pasar Sumber' },
+      { id: 'psr-crbnhkb-01', name: 'Pasar Sumber', kecamatan: 'Sumber', pengelola: 'UPT Pasar Sumber' },
       { id: 'psr-crbkab-02', name: 'Pasar Pasalaran Plered', kecamatan: 'Weru', pengelola: 'UPT Pasar Pasalaran' },
       { id: 'psr-crbkab-03', name: 'Pasar Palimanan', kecamatan: 'Palimanan', pengelola: 'UPT Pasar Palimanan' },
       { id: 'psr-crbkab-04', name: 'Pasar Jamblang', kecamatan: 'Jamblang', pengelola: 'UPT Pasar Jamblang' },
@@ -161,7 +161,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     markets: [
       { id: 'psr-idm-01', name: 'Pasar Baru Indramayu', kecamatan: 'Indramayu', pengelola: 'UPTD Pasar Indramayu' },
       { id: 'psr-idm-02', name: 'Pasar Daerah Jatibarang', kecamatan: 'Jatibarang', pengelola: 'UPTD Pasar Jatibarang' },
-      { id: 'psr-idm-03', name: 'Pasar Karangampel', kecamatan: 'Karangampel', pengelola: 'UPTD Pasar Karangampel' },
+      { id: 'psr-indramayu-01', name: 'Pasar Karangampel', kecamatan: 'Karangampel', pengelola: 'UPTD Pasar Karangampel' },
       { id: 'psr-idm-04', name: 'Pasar Daerah Haurgeulis', kecamatan: 'Haurgeulis', pengelola: 'UPTD Pasar Haurgeulis' },
       { id: 'psr-idm-05', name: 'Pasar Patrol', kecamatan: 'Patrol', pengelola: 'UPTD Pasar Patrol' },
     ],
@@ -171,7 +171,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kab. Subang',
     instansiPengelola: 'UPTD Pasar DKUPP Kab. Subang',
     markets: [
-      { id: 'psr-sbg-01', name: 'Pasar Pujasera Subang', kecamatan: 'Subang', pengelola: 'UPTD Pasar Subang' },
+      { id: 'psr-sbgkab-01', name: 'Pasar Pujasera Subang', kecamatan: 'Subang', pengelola: 'UPTD Pasar Subang' },
       { id: 'psr-sbg-02', name: 'Pasar Baru Subang', kecamatan: 'Subang', pengelola: 'UPTD Pasar Subang' },
       { id: 'psr-sbg-03', name: 'Pasar Inpres Pamanukan', kecamatan: 'Pamanukan', pengelola: 'UPTD Pasar Pamanukan' },
       { id: 'psr-sbg-04', name: 'Pasar Sukamandi Ciasem', kecamatan: 'Ciasem', pengelola: 'UPTD Pasar Ciasem' },
@@ -184,7 +184,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     instansiPengelola: 'UPTD Pasar DKUPP Kab. Purwakarta',
     markets: [
       { id: 'psr-pwk-01', name: 'Pasar Induk Cikopo', kecamatan: 'Bungursari', pengelola: 'UPTD Pasar Cikopo' },
-      { id: 'psr-pwk-02', name: 'Pasar Rebo Purwakarta', kecamatan: 'Purwakarta', pengelola: 'UPTD Pasar Rebo' },
+      { id: 'psr-pwkkab-01', name: 'Pasar Rebo Purwakarta', kecamatan: 'Purwakarta', pengelola: 'UPTD Pasar Rebo' },
       { id: 'psr-pwk-03', name: 'Pasar Leuwi Panjang', kecamatan: 'Purwakarta', pengelola: 'UPTD Pasar Purwakarta' },
       { id: 'psr-pwk-04', name: 'Pasar Plered Purwakarta', kecamatan: 'Plered', pengelola: 'UPTD Pasar Plered' },
     ],
@@ -194,7 +194,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kab. Karawang',
     instansiPengelola: 'UPTD Pasar Disperindag Kab. Karawang',
     markets: [
-      { id: 'psr-krw-01', name: 'Pasar Induk Johar Karawang', kecamatan: 'Karawang Timur', pengelola: 'UPTD Pasar Wilayah I' },
+      { id: 'psr-krwkab-01', name: 'Pasar Induk Johar Karawang', kecamatan: 'Karawang Timur', pengelola: 'UPTD Pasar Wilayah I' },
       { id: 'psr-krw-02', name: 'Pasar Baru Karawang', kecamatan: 'Karawang Barat', pengelola: 'UPTD Pasar Wilayah I' },
       { id: 'psr-krw-03', name: 'Pasar Cikampek', kecamatan: 'Cikampek', pengelola: 'UPTD Pasar Wilayah II' },
       { id: 'psr-krw-04', name: 'Pasar Rengasdengklok', kecamatan: 'Rengasdengklok', pengelola: 'UPTD Pasar Wilayah III' },
@@ -206,8 +206,8 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kab. Bekasi',
     instansiPengelola: 'UPTD Pengelolaan Pasar Dinas Perdagangan Kab. Bekasi',
     markets: [
+      { id: 'psr-bekasikab-01', name: 'Pasar Baru Cikarang', kecamatan: 'Cikarang Utara', pengelola: 'UPTD Pasar Cikarang' },
       { id: 'psr-bkskab-01', name: 'Pasar Induk Cibitung', kecamatan: 'Cibitung', pengelola: 'UPTD Pasar Cibitung' },
-      { id: 'psr-bkskab-02', name: 'Pasar Cikarang', kecamatan: 'Cikarang Utara', pengelola: 'UPTD Pasar Cikarang' },
       { id: 'psr-bkskab-03', name: 'Pasar Tambun', kecamatan: 'Tambun Selatan', pengelola: 'UPTD Pasar Tambun' },
       { id: 'psr-bkskab-04', name: 'Pasar Setu', kecamatan: 'Setu', pengelola: 'UPTD Pasar Setu' },
       { id: 'psr-bkskab-05', name: 'Pasar Babelan', kecamatan: 'Babelan', pengelola: 'UPTD Pasar Babelan' },
@@ -233,7 +233,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
       { id: 'psr-pnd-01', name: 'Pasar Pananjung Pangandaran', kecamatan: 'Pangandaran', pengelola: 'UPTD Pasar Pangandaran' },
       { id: 'psr-pnd-02', name: 'Pasar Parigi', kecamatan: 'Parigi', pengelola: 'UPTD Pasar Parigi' },
       { id: 'psr-pnd-03', name: 'Pasar Padaherang', kecamatan: 'Padaherang', pengelola: 'UPTD Pasar Padaherang' },
-      { id: 'psr-pnd-04', name: 'Pasar Kalipucang', kecamatan: 'Kalipucang', pengelola: 'UPTD Pasar Kalipucang' },
+      { id: 'psr-pgd-01', name: 'Pasar Kalipucang', kecamatan: 'Kalipucang', pengelola: 'UPTD Pasar Kalipucang' },
     ],
   },
   '32.71': {
@@ -241,7 +241,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kota Bogor',
     instansiPengelola: 'Perumda Pasar Pakuan Jaya Kota Bogor',
     markets: [
-      { id: 'psr-bgrkota-01', name: 'Pasar Kebon Kembang (Pasar Anyar)', kecamatan: 'Bogor Tengah', pengelola: 'Perumda Pasar Pakuan Jaya' },
+      { id: 'psr-bogorkot-01', name: 'Pasar Anyar Bogor (Kebon Kembang)', kecamatan: 'Bogor Tengah', pengelola: 'Perumda Pasar Pakuan Jaya' },
       { id: 'psr-bgrkota-02', name: 'Pasar Baru Bogor', kecamatan: 'Bogor Tengah', pengelola: 'Perumda Pasar Pakuan Jaya' },
       { id: 'psr-bgrkota-03', name: 'Pasar Jambu Dua', kecamatan: 'Bogor Utara', pengelola: 'Perumda Pasar Pakuan Jaya' },
       { id: 'psr-bgrkota-04', name: 'Pasar Sukasari', kecamatan: 'Bogor Timur', pengelola: 'Perumda Pasar Pakuan Jaya' },
@@ -253,7 +253,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kota Sukabumi',
     instansiPengelola: 'UPT Pasar Diskumindag Kota Sukabumi',
     markets: [
-      { id: 'psr-smikota-01', name: 'Pasar Pelita Sukabumi', kecamatan: 'Cikole', pengelola: 'UPT Pasar Diskumindag' },
+      { id: 'psr-smikot-01', name: 'Pasar Pelita Sukabumi', kecamatan: 'Cikole', pengelola: 'UPT Pasar Diskumindag' },
       { id: 'psr-smikota-02', name: 'Pasar Tipar Gede (Pasar Gudang)', kecamatan: 'Citamiang', pengelola: 'UPT Pasar Diskumindag' },
       { id: 'psr-smikota-03', name: 'Pasar Lembursitu', kecamatan: 'Lembursitu', pengelola: 'UPT Pasar Diskumindag' },
       { id: 'psr-smikota-04', name: 'Pasar Degung', kecamatan: 'Gunungpuyuh', pengelola: 'UPT Pasar Diskumindag' },
@@ -264,7 +264,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kota Bandung',
     instansiPengelola: 'Perumda Pasar Juara Kota Bandung',
     markets: [
-      { id: 'psr-bdgkota-01', name: 'Pasar Induk Caringin', kecamatan: 'Babakan Ciparay', pengelola: 'Pasar Induk Kota Bandung' },
+      { id: 'psr-bdgkot-01', name: 'Pasar Induk Caringin', kecamatan: 'Babakan Ciparay', pengelola: 'Pasar Induk Kota Bandung' },
       { id: 'psr-bdgkota-02', name: 'Pasar Kosambi', kecamatan: 'Sumur Bandung', pengelola: 'Perumda Pasar Juara' },
       { id: 'psr-bdgkota-03', name: 'Pasar Baru Trade Center', kecamatan: 'Andir', pengelola: 'Perumda Pasar Juara' },
       { id: 'psr-bdgkota-04', name: 'Pasar Sederhana', kecamatan: 'Sukajadi', pengelola: 'Perumda Pasar Juara' },
@@ -278,7 +278,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kota Cirebon',
     instansiPengelola: 'Perumda Pasar Berintan Kota Cirebon',
     markets: [
-      { id: 'psr-crbkota-01', name: 'Pasar Kanoman', kecamatan: 'Lemahwungkuk', pengelola: 'Perumda Pasar Berintan' },
+      { id: 'psr-crbkot-01', name: 'Pasar Kanoman', kecamatan: 'Lemahwungkuk', pengelola: 'Perumda Pasar Berintan' },
       { id: 'psr-crbkota-02', name: 'Pasar Pagi Cirebon', kecamatan: 'Kejaksan', pengelola: 'Perumda Pasar Berintan' },
       { id: 'psr-crbkota-03', name: 'Pasar Induk Jagasatru', kecamatan: 'Pekalipan', pengelola: 'Perumda Pasar Berintan' },
       { id: 'psr-crbkota-04', name: 'Pasar Harjamukti', kecamatan: 'Harjamukti', pengelola: 'Perumda Pasar Berintan' },
@@ -290,7 +290,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kota Bekasi',
     instansiPengelola: 'UPTD Pasar Disdagperin Kota Bekasi',
     markets: [
-      { id: 'psr-bkskota-01', name: 'Pasar Baru Bekasi', kecamatan: 'Bekasi Timur', pengelola: 'UPTD Pasar Baru Bekasi' },
+      { id: 'psr-bekasikot-01', name: 'Pasar Baru Bekasi', kecamatan: 'Bekasi Timur', pengelola: 'UPTD Pasar Baru Bekasi' },
       { id: 'psr-bkskota-02', name: 'Pasar Kranji Baru', kecamatan: 'Bekasi Barat', pengelola: 'UPTD Pasar Kranji' },
       { id: 'psr-bkskota-03', name: 'Pasar Pondok Gede', kecamatan: 'Pondokgede', pengelola: 'UPTD Pasar Pondok Gede' },
       { id: 'psr-bkskota-04', name: 'Pasar Kranggan', kecamatan: 'Jatisampurna', pengelola: 'UPTD Pasar Kranggan' },
@@ -304,7 +304,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     markets: [
       { id: 'psr-dpk-01', name: 'Pasar Agung Depok', kecamatan: 'Sukmajaya', pengelola: 'UPTD Pasar Agung' },
       { id: 'psr-dpk-02', name: 'Pasar Cisalak', kecamatan: 'Cimanggis', pengelola: 'UPTD Pasar Cisalak' },
-      { id: 'psr-dpk-03', name: 'Pasar Kemiri Muka', kecamatan: 'Beji', pengelola: 'UPTD Pasar Kemiri Muka' },
+      { id: 'psr-depokkot-01', name: 'Pasar Kemiri Muka', kecamatan: 'Beji', pengelola: 'UPTD Pasar Kemiri Muka' },
       { id: 'psr-dpk-04', name: 'Pasar Tugu Depok', kecamatan: 'Cimanggis', pengelola: 'UPTD Pasar Tugu' },
       { id: 'psr-dpk-05', name: 'Pasar Sukatani Depok', kecamatan: 'Tapos', pengelola: 'UPTD Pasar Sukatani' },
     ],
@@ -314,7 +314,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kota Cimahi',
     instansiPengelola: 'UPT Pasar Disdagkoperin Kota Cimahi',
     markets: [
-      { id: 'psr-cmh-01', name: 'Pasar Atas Baru Cimahi', kecamatan: 'Cimahi Tengah', pengelola: 'UPT Pasar Kota Cimahi' },
+      { id: 'psr-cmhkot-01', name: 'Pasar Atas Baru Cimahi', kecamatan: 'Cimahi Tengah', pengelola: 'UPT Pasar Kota Cimahi' },
       { id: 'psr-cmh-02', name: 'Pasar Antri Baru', kecamatan: 'Cimahi Tengah', pengelola: 'UPT Pasar Kota Cimahi' },
       { id: 'psr-cmh-03', name: 'Pasar Cimindi', kecamatan: 'Cimahi Selatan', pengelola: 'UPT Pasar Kota Cimahi' },
       { id: 'psr-cmh-04', name: 'Pasar Melong', kecamatan: 'Cimahi Selatan', pengelola: 'UPT Pasar Kota Cimahi' },
@@ -325,7 +325,7 @@ export const OFFICIAL_MARKETS_BY_REGION: Record<string, RegionMarketDirectory> =
     regionName: 'Kota Tasikmalaya',
     instansiPengelola: 'Perumda Pasar Resik Kota Tasikmalaya',
     markets: [
-      { id: 'psr-tsmkota-01', name: 'Pasar Induk Cikurubuk', kecamatan: 'Mangkubumi', pengelola: 'Perumda Pasar Resik' },
+      { id: 'psr-tasikkt-01', name: 'Pasar Induk Cikurubuk', kecamatan: 'Mangkubumi', pengelola: 'Perumda Pasar Resik' },
       { id: 'psr-tsmkota-02', name: 'Pasar Pancasila', kecamatan: 'Tawang', pengelola: 'Perumda Pasar Resik' },
       { id: 'psr-tsmkota-03', name: 'Pasar Padayungan', kecamatan: 'Cihideung', pengelola: 'Perumda Pasar Resik' },
       { id: 'psr-tsmkota-04', name: 'Pasar Indihiang', kecamatan: 'Indihiang', pengelola: 'Perumda Pasar Resik' },

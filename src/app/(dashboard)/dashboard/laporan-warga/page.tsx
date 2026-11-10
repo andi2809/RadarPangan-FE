@@ -6,6 +6,7 @@ import { GISLayout } from '@/components/gis/layout/GISLayout';
 import {
   Search,
   ChevronDown,
+  ChevronUp,
   X,
   ShieldCheck,
   CheckCircle2,
@@ -17,11 +18,19 @@ import {
   ArrowRight,
   Info,
   Sparkles,
+  Building2,
+  Store,
+  MapPin,
+  ChevronsUpDown,
+  ListFilter,
+  CheckSquare,
 } from 'lucide-react';
 import {
+  getAllRegionConsensusGroups,
   getAllMarketsMultiCommoditySummary,
-  getMarketConsensusByCommodity,
+  getAllOfficialMarketsConsensusByCommodity,
   COMMODITY_CONSENSUS_CONFIGS,
+  type RegionConsensusGroup,
   type MarketMultiCommoditySummary,
   type MarketConsensusItem,
 } from '@/data/mock/marketConsensus';
@@ -29,55 +38,156 @@ import {
 const numberFormat = new Intl.NumberFormat('id-ID');
 
 export default function LaporanWargaPage() {
-  // Mode tampilan: 'matrix' (Semua Komoditas per Pasar) vs 'single' (Fokus 1 Komoditas dengan Corong Saringan)
-  const [viewMode, setViewMode] = useState<'matrix' | 'single'>('matrix');
+  // Mode tampilan:
+  // 1. 'accordion': Hierarki Wilayah (27 Kabupaten/Kota -> 133 Pasar Tradisional) - REKOMENDASI UTAMA
+  // 2. 'matrix': Matriks Komparasi Datar (Seluruh 133 Pasar)
+  // 3. 'single': Audit Corong 3 Saringan (Fokus 1 Komoditas Tertentu)
+  const [viewMode, setViewMode] = useState<'accordion' | 'matrix' | 'single'>('accordion');
 
   const [search, setSearch] = useState<string>('');
+  const [selectedRegionFilter, setSelectedRegionFilter] = useState<string>('all');
+  const [readinessFilter, setReadinessFilter] = useState<'all' | 'high' | 'partial' | 'none'>('all');
+
+  // Single commodity mode state
   const [selectedCommodity, setSelectedCommodity] = useState<string>('Cabai Rawit Merah');
-  const [coverageFilter, setCoverageFilter] = useState<'all' | 'high' | 'medium' | 'none'>('all');
   const [activeTabSingle, setActiveTabSingle] = useState<'all' | 'tercapai' | 'menunggu' | 'belum_ada'>('all');
 
-  const [selectedMarketForModal, setSelectedMarketForModal] = useState<MarketMultiCommoditySummary | null>(null);
-
-  // 1. Data Matriks Multi-Komoditas (27 Pasar x 6 Komoditas)
-  const allMarketsMulti = useMemo(() => {
-    return getAllMarketsMultiCommoditySummary();
+  // Data 1: Grup Hirarkis per Kabupaten/Kota (27 Wilayah & 133 Pasar Resmi)
+  const allRegionGroups = useMemo(() => {
+    return getAllRegionConsensusGroups();
   }, []);
 
-  // Filter matriks berdasarkan pencarian & tingkat kesiapan kuorum pasar
-  const filteredMatrixMarkets = useMemo(() => {
-    return allMarketsMulti.filter((item) => {
+  // Set Akordion Terbuka (Default: Buka 3 wilayah pertama: Kab. Bogor, Kab. Sukabumi, Kab. Bekasi)
+  const [expandedRegions, setExpandedRegions] = useState<Set<string>>(
+    () => new Set(['32.01', '32.16', '32.73'])
+  );
+
+  const toggleRegion = (regionId: string) => {
+    setExpandedRegions((prev) => {
+      const next = new Set(prev);
+      if (next.has(regionId)) {
+        next.delete(regionId);
+      } else {
+        next.add(regionId);
+      }
+      return next;
+    });
+  };
+
+  const expandAllRegions = () => {
+    setExpandedRegions(new Set(allRegionGroups.map((g) => g.regionId)));
+  };
+
+  const collapseAllRegions = () => {
+    setExpandedRegions(new Set());
+  };
+
+  // Filter Grup Wilayah berdasarkan Pencarian, Dropdown Wilayah & Tingkat Kesiapan
+  const filteredRegionGroups = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return allRegionGroups
+      .map((group) => {
+        // Filter dropdown wilayah spesifik
+        if (selectedRegionFilter !== 'all' && group.regionId !== selectedRegionFilter) {
+          return null;
+        }
+
+        // Filter kesiapan kuorum wilayah
+        if (readinessFilter === 'high' && group.highReadinessMarkets === 0) {
+          return null;
+        }
+        if (
+          readinessFilter === 'partial' &&
+          (group.activeQuorumMarkets === 0 || group.highReadinessMarkets > 0)
+        ) {
+          return null;
+        }
+        if (readinessFilter === 'none' && group.activeQuorumMarkets > 0) {
+          return null;
+        }
+
+        // Filter pencarian teks (nama wilayah, nama pasar, atau kecamatan)
+        if (!q) return group;
+
+        const regionMatch =
+          group.regionName.toLowerCase().includes(q) ||
+          group.regionId.includes(q) ||
+          group.instansiPengelola.toLowerCase().includes(q);
+
+        const matchingMarkets = group.markets.filter(
+          (m) =>
+            m.namaPasar.toLowerCase().includes(q) ||
+            (m.kecamatan && m.kecamatan.toLowerCase().includes(q))
+        );
+
+        if (regionMatch) {
+          return group;
+        }
+
+        if (matchingMarkets.length > 0) {
+          return {
+            ...group,
+            markets: matchingMarkets,
+          };
+        }
+
+        return null;
+      })
+      .filter((g): g is RegionConsensusGroup => g !== null);
+  }, [allRegionGroups, selectedRegionFilter, readinessFilter, search]);
+
+  // Data 2: Daftar Datar Seluruh 133 Pasar (untuk Mode Matriks)
+  const allFlatMarkets = useMemo(() => {
+    return allRegionGroups.flatMap((g) => g.markets);
+  }, [allRegionGroups]);
+
+  const filteredFlatMarkets = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return allFlatMarkets.filter((item) => {
+      if (selectedRegionFilter !== 'all' && item.regionId !== selectedRegionFilter) return false;
+
       const matchSearch =
-        item.namaPasar.toLowerCase().includes(search.toLowerCase()) ||
-        item.kabupatenKota.toLowerCase().includes(search.toLowerCase());
+        !q ||
+        item.namaPasar.toLowerCase().includes(q) ||
+        item.kabupatenKota.toLowerCase().includes(q) ||
+        (item.kecamatan && item.kecamatan.toLowerCase().includes(q));
 
       if (!matchSearch) return false;
 
-      if (coverageFilter === 'all') return true;
-      if (coverageFilter === 'high') return item.quorumCoverage.reached >= 3;
-      if (coverageFilter === 'medium') return item.quorumCoverage.reached === 1 || item.quorumCoverage.reached === 2;
-      if (coverageFilter === 'none') return item.quorumCoverage.reached === 0;
+      if (readinessFilter === 'all') return true;
+      if (readinessFilter === 'high') return item.quorumCoverage.reached >= 3;
+      if (readinessFilter === 'partial')
+        return item.quorumCoverage.reached === 1 || item.quorumCoverage.reached === 2;
+      if (readinessFilter === 'none') return item.quorumCoverage.reached === 0;
+
       return true;
     });
-  }, [allMarketsMulti, search, coverageFilter]);
+  }, [allFlatMarkets, selectedRegionFilter, readinessFilter, search]);
 
-  // 2. Data Single Komoditas (Fokus 1 Komoditas Tertentu)
+  // Data 3: Data Single Komoditas (133 Pasar Resmi untuk Komoditas Terpilih)
   const marketsForSingleCommodity = useMemo(() => {
-    return getMarketConsensusByCommodity(selectedCommodity);
+    return getAllOfficialMarketsConsensusByCommodity(selectedCommodity);
   }, [selectedCommodity]);
 
   const filteredSingleMarkets = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
     return marketsForSingleCommodity.filter((item) => {
+      if (selectedRegionFilter !== 'all' && item.regionId !== selectedRegionFilter) return false;
+
       const matchSearch =
-        item.namaPasar.toLowerCase().includes(search.toLowerCase()) ||
-        item.kabupatenKota.toLowerCase().includes(search.toLowerCase());
+        !q ||
+        item.namaPasar.toLowerCase().includes(q) ||
+        item.kabupatenKota.toLowerCase().includes(q);
 
       if (!matchSearch) return false;
 
       if (activeTabSingle === 'all') return true;
       return item.statusKuorum === activeTabSingle;
     });
-  }, [marketsForSingleCommodity, search, activeTabSingle]);
+  }, [marketsForSingleCommodity, selectedRegionFilter, search, activeTabSingle]);
 
   // Tab counts untuk single commodity view
   const singleCounts = useMemo(() => {
@@ -109,19 +219,26 @@ export default function LaporanWargaPage() {
     );
   }, [marketsForSingleCommodity]);
 
-  // Statistik Ringkasan Eksekutif se-Jawa Barat
+  // Statistik Ringkasan Eksekutif se-Jawa Barat (133 Pasar di 27 Kab/Kota)
   const headlineStats = useMemo(() => {
-    const totalReports = allMarketsMulti.reduce((acc, m) => acc + m.totalLaporanMasuk, 0);
-    const totalValid = allMarketsMulti.reduce((acc, m) => acc + m.totalLaporanValid, 0);
-    const readyMarkets = allMarketsMulti.filter((m) => m.quorumCoverage.reached >= 3).length;
-    const blankMarkets = allMarketsMulti.filter((m) => m.quorumCoverage.reached === 0).length;
+    const totalReports = allRegionGroups.reduce((acc, g) => acc + g.totalLaporanMasuk, 0);
+    const totalValid = allRegionGroups.reduce((acc, g) => acc + g.totalLaporanValid, 0);
+    const readyMarkets = allFlatMarkets.filter((m) => m.quorumCoverage.reached >= 3).length;
+    const partialMarkets = allFlatMarkets.filter(
+      (m) => m.quorumCoverage.reached === 1 || m.quorumCoverage.reached === 2
+    ).length;
+    const blankMarkets = allFlatMarkets.filter((m) => m.quorumCoverage.reached === 0).length;
+
     return {
       totalReports,
       totalValid,
       readyMarkets,
+      partialMarkets,
       blankMarkets,
+      totalMarketsCount: allFlatMarkets.length,
+      totalRegionsCount: allRegionGroups.length,
     };
-  }, [allMarketsMulti]);
+  }, [allRegionGroups, allFlatMarkets]);
 
   return (
     <GISLayout>
@@ -130,7 +247,7 @@ export default function LaporanWargaPage() {
         <div className="flex items-center gap-1.5 font-sans">
           <span className="font-extrabold tracking-wider text-[#67151D]">RADAR PANGAN</span>
           <span className="text-[#898277]">|</span>
-          <span className="text-[#706B62]">Konsol Analisis &bull; Provinsi Jawa Barat</span>
+          <span className="text-[#706B62]">Konsol Pemantauan &bull; Provinsi Jawa Barat</span>
         </div>
         <div className="mt-1 sm:mt-0 text-[#706B62] flex items-center gap-2">
           <span>
@@ -148,18 +265,31 @@ export default function LaporanWargaPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <span className="block text-[11px] font-extrabold uppercase tracking-widest text-[#67151D]">
-              TRANSPARANSI KONSENSUS HARGA WARGA
+              TRANSPARANSI KONSENSUS HARGA WARGA TINGKAT PASAR
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#24231F]">
-              Pemantauan Partisipasi &amp; Kuorum Pasar
+              Pemantauan Partisipasi &amp; Kuorum Pasar Jawa Barat
             </h1>
             <p className="text-xs sm:text-sm text-[#706B62] mt-0.5">
-              Evaluasi konsensus harga warga tingkat pasar. Kuorum dinilai secara independen per jenis komoditas.
+              Direktori resmi 133 pasar tradisional di 27 Kabupaten/Kota. Evaluasi kuorum dilakukan secara independen per jenis komoditas.
             </p>
           </div>
 
           {/* Mode Switcher Toggle */}
           <div className="inline-flex rounded-xl border border-[#DED8CD] bg-[#FBF9F4] p-1 text-xs font-bold shadow-sm">
+            <button
+              type="button"
+              onClick={() => setViewMode('accordion')}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 transition ${
+                viewMode === 'accordion'
+                  ? 'bg-[#67151D] text-white shadow-sm'
+                  : 'text-[#706B62] hover:text-[#24231F]'
+              }`}
+            >
+              <Building2 size={14} />
+              <span>Hierarki Wilayah (Akordion 27 Kab/Kota)</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setViewMode('matrix')}
@@ -170,7 +300,7 @@ export default function LaporanWargaPage() {
               }`}
             >
               <LayoutGrid size={14} />
-              <span>Matriks Pasar (Semua Komoditas)</span>
+              <span>Matriks Lengkap (133 Pasar)</span>
             </button>
 
             <button
@@ -183,13 +313,13 @@ export default function LaporanWargaPage() {
               }`}
             >
               <Filter size={14} />
-              <span>Audit Fokus per Komoditas</span>
+              <span>Audit Corong per Komoditas</span>
             </button>
           </div>
         </div>
       </section>
 
-      {/* Edukasi Konseptual: Mengapa Kuorum Dinilai per Komoditas, Bukan per Pasar? */}
+      {/* Edukasi Konseptual: Mengapa Kuorum Dinilai per Komoditas dan Mengapa Dikelompokkan per Wilayah? */}
       <section className="rounded-xl border border-[#BADFC4] bg-[#F2FBF4] p-4 text-xs text-[#1E3A27] leading-relaxed shadow-sm">
         <div className="flex items-start gap-3">
           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#2D6A4F] text-white mt-0.5">
@@ -197,10 +327,10 @@ export default function LaporanWargaPage() {
           </div>
           <div className="space-y-1">
             <span className="font-extrabold block text-sm text-[#1E3A27]">
-              Konsep Metodologi: Laporan Warga Bersifat Atomik per Komoditas
+              Hirarki Tata Kelola: Provinsi &rarr; 27 Kabupaten/Kota &rarr; 133 Pasar Rakyat &rarr; 6 Komoditas Pokok
             </span>
             <p className="text-[#365A42]">
-              Seorang warga di pasar melaporkan harga <strong>satu komoditas spesifik</strong> (misal Cabai Rawit). Oleh karena itu, syarat kuorum (minimal 10 laporan independen valid) dihitung <strong>per komoditas</strong>. Di pasar yang sama, komoditas Cabai bisa jadi sudah mencapai kuorum, sementara Beras atau Minyak masih menunggu laporan tambahan. Sebuah pasar tidak dapat diberi label kuorum tunggal tanpa melihat rincian komoditasnya.
+              Setiap Kabupaten/Kota di Jawa Barat memiliki lebih dari satu pasar rakyat resmi pantauan TPID (rata-rata 4&ndash;7 pasar per daerah). Karena laporan warga bersifat <strong>atomik per komoditas</strong>, kuorum (minimal 10 laporan independen) dihitung terpisah untuk masing-masing komoditas. Di wilayah yang sama, pasar induk grosir (seperti Pasar Caringin atau Cibitung) bisa memiliki tingkat partisipasi lebih tinggi dibandingkan pasar kecamatan ritel. Pengelompokan berhirarki memudahkan pemerintah mendeteksi disparitas harga antar pasar dan mengidentifikasi pasar yang masih minim laporan warga.
             </p>
           </div>
         </div>
@@ -217,117 +347,468 @@ export default function LaporanWargaPage() {
             {headlineStats.totalReports.toLocaleString('id-ID')}
           </strong>
           <span className="mt-1 block text-xs text-[#706B62]">
-            {headlineStats.totalValid.toLocaleString('id-ID')} lolos 3 saringan
+            {headlineStats.totalValid.toLocaleString('id-ID')} lolos 3 saringan konsensus
           </span>
         </div>
 
         {/* Metric 2 */}
         <div className="px-4 py-2">
           <span className="block text-xs font-bold uppercase tracking-wider text-[#706B62]">
-            PASAR TERPANTAU
+            CAKUPAN PASAR PANTAUAN
           </span>
           <strong className="mt-1.5 block text-3xl font-black text-[#1E40AF]">
-            {allMarketsMulti.length} Pasar
+            {headlineStats.totalMarketsCount} Pasar
           </strong>
           <span className="mt-1 block text-xs text-[#706B62]">
-            27 Kabupaten/Kota Jawa Barat
+            Tersebar di {headlineStats.totalRegionsCount} Kabupaten/Kota se-Jabar
           </span>
         </div>
 
         {/* Metric 3 */}
         <div className="px-4 py-2">
           <span className="block text-xs font-bold uppercase tracking-wider text-[#706B62]">
-            PASAR SIAP PANTAU (&ge; 50% KUORUM)
+            PASAR KESIAPAN TINGGI (&ge;50% KUORUM)
           </span>
           <strong className="mt-1.5 block text-3xl font-black text-[#15803D]">
             {headlineStats.readyMarkets} Pasar
           </strong>
           <span className="mt-1 block text-xs text-[#706B62]">
-            Minimal 3 dari 6 komoditas sah
+            Minimal 3 dari 6 komoditas sah kuorum
           </span>
         </div>
 
         {/* Metric 4 */}
         <div className="px-4 py-2 last:pr-0">
           <span className="block text-xs font-bold uppercase tracking-wider text-[#706B62]">
-            PASAR BELUM MEMILIKI KUORUM
+            PASAR BUTUH PENINGKATAN LAPORAN
           </span>
           <strong className="mt-1.5 block text-3xl font-black text-[#B45309]">
             {headlineStats.blankMarkets} Pasar
           </strong>
           <span className="mt-1 block text-xs text-[#706B62]">
-            Memerlukan ajakan pelaporan warga
+            0 kuorum komoditas (perlu ajakan pelaporan)
           </span>
         </div>
       </section>
 
-      {/* ========================================================================= */}
-      {/* TAMPILAN 1: MATRIKS SEMUA KOMODITAS PER PASAR (REKOMENDASI UTAMA)         */}
-      {/* ========================================================================= */}
-      {viewMode === 'matrix' && (
-        <section className="space-y-4 pt-1">
-          {/* Header & Filter Bar Matriks */}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-extrabold text-[#24231F]">
-                  Matriks Kesiapan Konsensus Pasar Jawa Barat
-                </h2>
-                <span className="rounded-full bg-[#E3F0E7] px-2.5 py-0.5 text-xs font-mono font-bold text-[#15803D]">
-                  6 Bahan Pangan Pokok
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs text-[#706B62]">
-                Setiap baris pasar menampilkan status kuorum dan harga konsensus untuk seluruh komoditas secara berdampingan.
-              </p>
+      {/* Global Filter Bar for Accordion & Matrix Views */}
+      {(viewMode === 'accordion' || viewMode === 'matrix') && (
+        <section className="flex flex-col gap-3 rounded-xl border border-[#DED8CD] bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Cari pasar, kecamatan, atau daerah..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 w-64 rounded-lg border border-[#D8D1C5] bg-[#FBF9F4] px-3 text-xs text-[#24231F] outline-none transition focus:border-[#67151D] focus:bg-white"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#706B62] hover:text-[#24231F]"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Search */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Cari pasar atau kabupaten/kota..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-9 w-64 rounded-lg border border-[#D8D1C5] bg-white px-3 text-xs text-[#24231F] outline-none transition focus:border-[#67151D]"
-                />
-              </div>
+            {/* Dropdown Filter Wilayah (27 Kabupaten/Kota) */}
+            <div className="relative">
+              <select
+                value={selectedRegionFilter}
+                onChange={(e) => setSelectedRegionFilter(e.target.value)}
+                className="h-9 appearance-none rounded-lg border border-[#D8D1C5] bg-[#FBF9F4] pl-3 pr-8 text-xs font-bold text-[#24231F] outline-none transition focus:border-[#67151D] focus:bg-white"
+              >
+                <option value="all">Semua 27 Wilayah ({headlineStats.totalRegionsCount} Kab/Kota)</option>
+                {allRegionGroups.map((g) => (
+                  <option key={g.regionId} value={g.regionId}>
+                    {g.regionName} ({g.totalMarkets} Pasar)
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#706B62]"
+              />
+            </div>
 
-              {/* Filter Cakupan */}
-              <div className="flex items-center rounded-lg border border-[#D8D1C5] bg-white p-0.5 text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => setCoverageFilter('all')}
-                  className={`px-2.5 py-1.5 rounded-md transition ${
-                    coverageFilter === 'all' ? 'bg-[#67151D] text-white' : 'text-[#706B62] hover:text-[#24231F]'
-                  }`}
-                >
-                  Semua ({allMarketsMulti.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCoverageFilter('high')}
-                  className={`px-2.5 py-1.5 rounded-md transition ${
-                    coverageFilter === 'high' ? 'bg-[#67151D] text-white' : 'text-[#706B62] hover:text-[#24231F]'
-                  }`}
-                >
-                  Kesiapan Tinggi &ge;50% ({allMarketsMulti.filter((m) => m.quorumCoverage.reached >= 3).length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCoverageFilter('none')}
-                  className={`px-2.5 py-1.5 rounded-md transition ${
-                    coverageFilter === 'none' ? 'bg-[#67151D] text-white' : 'text-[#706B62] hover:text-[#24231F]'
-                  }`}
-                >
-                  Belum Kuorum ({allMarketsMulti.filter((m) => m.quorumCoverage.reached === 0).length})
-                </button>
-              </div>
+            {/* Filter Tingkat Kesiapan */}
+            <div className="flex items-center rounded-lg border border-[#D8D1C5] bg-[#FBF9F4] p-0.5 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setReadinessFilter('all')}
+                className={`px-2.5 py-1.5 rounded-md transition ${
+                  readinessFilter === 'all'
+                    ? 'bg-[#67151D] text-white shadow-xs'
+                    : 'text-[#706B62] hover:text-[#24231F]'
+                }`}
+              >
+                Semua Kesiapan
+              </button>
+              <button
+                type="button"
+                onClick={() => setReadinessFilter('high')}
+                className={`px-2.5 py-1.5 rounded-md transition ${
+                  readinessFilter === 'high'
+                    ? 'bg-[#67151D] text-white shadow-xs'
+                    : 'text-[#706B62] hover:text-[#24231F]'
+                }`}
+              >
+                Kesiapan Tinggi (&ge;50%)
+              </button>
+              <button
+                type="button"
+                onClick={() => setReadinessFilter('partial')}
+                className={`px-2.5 py-1.5 rounded-md transition ${
+                  readinessFilter === 'partial'
+                    ? 'bg-[#67151D] text-white shadow-xs'
+                    : 'text-[#706B62] hover:text-[#24231F]'
+                }`}
+              >
+                Sebagian Kuorum
+              </button>
+              <button
+                type="button"
+                onClick={() => setReadinessFilter('none')}
+                className={`px-2.5 py-1.5 rounded-md transition ${
+                  readinessFilter === 'none'
+                    ? 'bg-[#67151D] text-white shadow-xs'
+                    : 'text-[#706B62] hover:text-[#24231F]'
+                }`}
+              >
+                Belum Kuorum
+              </button>
             </div>
           </div>
 
-          {/* Tabel Matriks */}
+          {/* Quick Accordion Expand/Collapse Controls */}
+          {viewMode === 'accordion' && (
+            <div className="flex items-center gap-2 text-xs font-bold text-[#706B62]">
+              <button
+                type="button"
+                onClick={expandAllRegions}
+                className="rounded-lg border border-[#DED8CD] px-2.5 py-1.5 hover:bg-[#FBF9F4] hover:text-[#24231F] transition"
+              >
+                Buka Semua ({filteredRegionGroups.length})
+              </button>
+              <button
+                type="button"
+                onClick={collapseAllRegions}
+                className="rounded-lg border border-[#DED8CD] px-2.5 py-1.5 hover:bg-[#FBF9F4] hover:text-[#24231F] transition"
+              >
+                Tutup Semua
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAMPILAN 1: HIERARKI WILAYAH (AKORDION 27 KABUPATEN/KOTA x 133 PASAR)    */}
+      {/* ========================================================================= */}
+      {viewMode === 'accordion' && (
+        <section className="space-y-3.5 pt-1">
+          {filteredRegionGroups.length === 0 ? (
+            <div className="rounded-xl border border-[#DED8CD] bg-white p-8 text-center text-xs text-[#706B62]">
+              <Store className="mx-auto h-8 w-8 text-[#898277] mb-2 opacity-50" />
+              <p className="font-bold text-sm text-[#24231F]">Tidak ada wilayah atau pasar yang cocok</p>
+              <p className="mt-1">Silakan sesuaikan kata kunci pencarian atau ubah filter kesiapan kuorum.</p>
+            </div>
+          ) : (
+            filteredRegionGroups.map((group) => {
+              const isExpanded = expandedRegions.has(group.regionId);
+              const readinessPct = Math.round((group.highReadinessMarkets / group.totalMarkets) * 100);
+              const isHighRegion = group.highReadinessMarkets >= 2 || readinessPct >= 40;
+              const isZeroRegion = group.activeQuorumMarkets === 0;
+
+              return (
+                <div
+                  key={group.regionId}
+                  className="rounded-xl border border-[#DED8CD] bg-white shadow-sm overflow-hidden transition"
+                >
+                  {/* Accordion Region Header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleRegion(group.regionId)}
+                    className="w-full flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 bg-[#FBF9F4] hover:bg-[#F5F1E8] transition text-left border-b border-[#EFEAE1]"
+                  >
+                    {/* Left Info: Region Name & Agency */}
+                    <div className="flex items-start sm:items-center gap-3">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#67151D] text-white">
+                        <Building2 size={18} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base font-extrabold text-[#24231F]">
+                            {group.regionName}
+                          </h3>
+                          <span className="rounded bg-[#EFEAE1] px-1.5 py-0.5 text-[10px] font-mono font-bold text-[#706B62]">
+                            Kode {group.regionId}
+                          </span>
+                          <span className="rounded-full bg-[#E3F0E7] px-2 py-0.5 text-[10px] font-bold text-[#15803D]">
+                            {group.totalMarkets} Pasar Terdaftar
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#706B62] mt-0.5">
+                          {group.instansiPengelola}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right Summary: Reports & Readiness */}
+                    <div className="flex items-center justify-between sm:justify-end gap-5 text-xs">
+                      {/* Laporan Stats */}
+                      <div className="text-right hidden sm:block">
+                        <span className="block font-extrabold text-sm text-[#24231F]">
+                          {group.totalLaporanMasuk} Laporan
+                        </span>
+                        <span className="block text-[10px] text-[#706B62]">
+                          {group.totalLaporanValid} lolos saringan
+                        </span>
+                      </div>
+
+                      {/* Quorum Readiness Progress */}
+                      <div className="w-36 text-right">
+                        <div className="flex items-center justify-between text-[11px] font-bold mb-1">
+                          <span
+                            className={
+                              isHighRegion
+                                ? 'text-[#15803D]'
+                                : isZeroRegion
+                                ? 'text-[#898277]'
+                                : 'text-[#D97706]'
+                            }
+                          >
+                            {group.activeQuorumMarkets} / {group.totalMarkets} Pasar Aktif
+                          </span>
+                          <span className="font-mono text-[10px] text-[#706B62]">
+                            {Math.round((group.activeQuorumMarkets / group.totalMarkets) * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-[#E5DFD5] overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              isHighRegion
+                                ? 'bg-[#15803D]'
+                                : isZeroRegion
+                                ? 'bg-transparent'
+                                : 'bg-[#D97706]'
+                            }`}
+                            style={{
+                              width: `${Math.round((group.activeQuorumMarkets / group.totalMarkets) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Chevron Toggle Icon */}
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-[#DED8CD] text-[#706B62]">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Accordion Region Expanded Body (Sub-table Pasar di Wilayah ini) */}
+                  {isExpanded && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-[#EFEAE1] bg-white text-[9.5px] font-extrabold uppercase tracking-wider text-[#706B62]">
+                            <th className="px-4 py-2.5 min-w-[200px]">PASAR &amp; KECAMATAN</th>
+                            <th className="px-3 py-2.5 text-center min-w-[140px]">KESIAPAN PASAR</th>
+                            <th className="px-3 py-2.5 text-center min-w-[120px]">
+                              🌶️ CABAI RAWIT
+                              <span className="block font-normal text-[8.5px] text-[#898277]">HAP Rp48.200</span>
+                            </th>
+                            <th className="px-3 py-2.5 text-center min-w-[120px]">
+                              🌾 BERAS MEDIUM
+                              <span className="block font-normal text-[8.5px] text-[#898277]">HET Rp13.500</span>
+                            </th>
+                            <th className="px-3 py-2.5 text-center min-w-[120px]">
+                              🧅 BAWANG MERAH
+                              <span className="block font-normal text-[8.5px] text-[#898277]">HAP Rp32.000</span>
+                            </th>
+                            <th className="px-3 py-2.5 text-center min-w-[120px]">
+                              🥚 TELUR AYAM
+                              <span className="block font-normal text-[8.5px] text-[#898277]">HAP Rp27.000</span>
+                            </th>
+                            <th className="px-3 py-2.5 text-center min-w-[120px]">
+                              🧴 MINYAK KEMASAN
+                              <span className="block font-normal text-[8.5px] text-[#898277]">HAP Rp17.500</span>
+                            </th>
+                            <th className="px-3 py-2.5 text-center min-w-[120px]">
+                              🛢️ MINYAK CURAH
+                              <span className="block font-normal text-[8.5px] text-[#898277]">HET Rp15.700</span>
+                            </th>
+                            <th className="px-4 py-2.5 text-right">AUDIT</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#F0ECE4]">
+                          {group.markets.map((market) => {
+                            const isHigh = market.quorumCoverage.reached >= 3;
+                            const isZero = market.quorumCoverage.reached === 0;
+
+                            return (
+                              <tr key={market.id} className="hover:bg-[#FBF9F4] transition">
+                                {/* PASAR & KECAMATAN */}
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm text-[#24231F] block">
+                                      {market.namaPasar}
+                                    </span>
+                                    {market.isAnchorMarket && (
+                                      <span className="rounded bg-[#FDF2F4] text-[#67151D] px-1.5 py-0.2 text-[9px] font-bold border border-[#F5C2C7]">
+                                        Pasar Induk/Acuan
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="block text-[11px] text-[#706B62] mt-0.5">
+                                    {market.kecamatan ? `Kec. ${market.kecamatan}` : market.kabupatenKota} &bull;{' '}
+                                    <span className="font-mono text-[10px] text-[#898277]">
+                                      {market.totalLaporanMasuk} lap masuk ({market.totalLaporanValid} valid)
+                                    </span>
+                                  </span>
+                                </td>
+
+                                {/* KESIAPAN KUORUM PASAR */}
+                                <td className="px-3 py-3 text-center">
+                                  <div className="space-y-1 inline-block text-left w-full max-w-[120px]">
+                                    <div className="flex items-center justify-between text-[10.5px] font-bold">
+                                      <span
+                                        className={
+                                          isHigh
+                                            ? 'text-[#15803D]'
+                                            : isZero
+                                            ? 'text-[#898277]'
+                                            : 'text-[#D97706]'
+                                        }
+                                      >
+                                        {market.quorumCoverage.reached} / 6 Kuorum
+                                      </span>
+                                      <span className="font-mono text-[9.5px] text-[#706B62]">
+                                        {market.quorumCoverage.percentage}%
+                                      </span>
+                                    </div>
+                                    <div className="h-1.5 w-full rounded-full bg-[#EFEAE1] overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all ${
+                                          isHigh
+                                            ? 'bg-[#15803D]'
+                                            : isZero
+                                            ? 'bg-transparent'
+                                            : 'bg-[#D97706]'
+                                        }`}
+                                        style={{ width: `${market.quorumCoverage.percentage}%` }}
+                                      />
+                                    </div>
+                                    <span
+                                      className={`inline-block text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                                        isHigh
+                                          ? 'bg-[#E3F0E7] text-[#15803D]'
+                                          : isZero
+                                          ? 'bg-[#F0ECE4] text-[#706B62]'
+                                          : 'bg-[#FFFBEB] text-[#D97706]'
+                                      }`}
+                                    >
+                                      {isHigh
+                                        ? 'Kesiapan Tinggi'
+                                        : isZero
+                                        ? 'Belum Ada Kuorum'
+                                        : 'Sebagian Kuorum'}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                {/* 6 KOLOM KOMODITAS */}
+                                {COMMODITY_CONSENSUS_CONFIGS.map((cfg) => {
+                                  const commData = market.commodities[cfg.id];
+                                  const isQuorum = commData?.statusKuorum === 'tercapai';
+                                  const isPending = commData?.statusKuorum === 'menunggu';
+
+                                  return (
+                                    <td key={cfg.id} className="px-3 py-3 text-center">
+                                      <Link
+                                        href={`/dashboard/laporan-warga/${market.id}?komoditas=${encodeURIComponent(
+                                          cfg.name
+                                        )}`}
+                                        className="block p-1 rounded-md hover:bg-white hover:shadow-xs transition border border-transparent hover:border-[#DED8CD]"
+                                        title={`Audit harga ${cfg.name} di ${market.namaPasar}`}
+                                      >
+                                        {isQuorum ? (
+                                          <div className="space-y-0.5">
+                                            <span className="font-mono font-black text-xs text-[#24231F] block">
+                                              Rp{numberFormat.format(commData.hargaWargaRp || 0)}
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-[#E3F0E7] px-1.5 py-0.2 text-[9.5px] font-bold text-[#15803D]">
+                                              <CheckCircle2 size={9} />
+                                              <span>✓ {commData.laporanValid} lap</span>
+                                            </span>
+                                          </div>
+                                        ) : isPending ? (
+                                          <div className="space-y-0.5">
+                                            <span className="font-mono font-medium text-[11px] text-[#706B62] block italic">
+                                              {commData.hargaWargaRp
+                                                ? `Rp${numberFormat.format(commData.hargaWargaRp)}`
+                                                : '—'}
+                                            </span>
+                                            <span className="inline-flex items-center gap-0.5 rounded-full bg-[#FFFBEB] px-1.5 py-0.2 text-[9px] font-bold text-[#D97706]">
+                                              <Clock size={8} />
+                                              <span>{commData.laporanValid}/10 lap</span>
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-0.5 opacity-40">
+                                            <span className="font-mono text-xs text-[#898277] block">-</span>
+                                            <span className="text-[9px] text-[#898277] block">0 lap</span>
+                                          </div>
+                                        )}
+                                      </Link>
+                                    </td>
+                                  );
+                                })}
+
+                                {/* DETAIL ACTION */}
+                                <td className="px-4 py-3 text-right whitespace-nowrap">
+                                  <Link
+                                    href={`/dashboard/laporan-warga/${market.id}`}
+                                    className="inline-flex items-center gap-1 text-xs font-bold text-[#67151D] hover:underline"
+                                  >
+                                    <span>Audit</span>
+                                    <ArrowRight size={12} />
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+
+          {/* Footer Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 text-xs text-[#706B62]">
+            <p>
+              Badge hijau (<span className="text-[#15803D] font-bold">✓</span>) menandakan kuorum &ge; 10 laporan tercapai dan konsensus harga disahkan. Badge kuning (<span className="text-[#D97706] font-bold">⏳</span>) menandakan sedang pengumpulan data.
+            </p>
+            <span className="whitespace-nowrap font-medium text-[#24231F]">
+              Menampilkan {filteredRegionGroups.length} dari {allRegionGroups.length} Kabupaten/Kota ({headlineStats.totalMarketsCount} pasar resmi)
+            </span>
+          </div>
+        </section>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAMPILAN 2: MATRIKS KOMPARASI LENGKAP (133 PASAR TRADISIONAL DATAR)       */}
+      {/* ========================================================================= */}
+      {viewMode === 'matrix' && (
+        <section className="space-y-4 pt-1">
           <div className="overflow-hidden rounded-xl border border-[#DED8CD] bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
@@ -363,8 +844,7 @@ export default function LaporanWargaPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0ECE4] text-xs">
-                  {filteredMatrixMarkets.map((market) => {
-                    const pct = market.quorumCoverage.percentage;
+                  {filteredFlatMarkets.map((market) => {
                     const isHigh = market.quorumCoverage.reached >= 3;
                     const isZero = market.quorumCoverage.reached === 0;
 
@@ -376,7 +856,7 @@ export default function LaporanWargaPage() {
                             {market.namaPasar}
                           </span>
                           <span className="block text-[11px] text-[#706B62]">
-                            {market.kabupatenKota}
+                            {market.kabupatenKota} {market.kecamatan ? `(${market.kecamatan})` : ''}
                           </span>
                           <span className="block text-[10px] font-mono text-[#898277] mt-0.5">
                             {market.totalLaporanMasuk} laporan masuk ({market.totalLaporanValid} valid)
@@ -394,14 +874,16 @@ export default function LaporanWargaPage() {
                               >
                                 {market.quorumCoverage.reached} / 6 Kuorum
                               </span>
-                              <span className="font-mono text-[10px] text-[#706B62]">{pct}%</span>
+                              <span className="font-mono text-[10px] text-[#706B62]">
+                                {market.quorumCoverage.percentage}%
+                              </span>
                             </div>
                             <div className="h-2 w-full rounded-full bg-[#EFEAE1] overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all ${
                                   isHigh ? 'bg-[#15803D]' : isZero ? 'bg-transparent' : 'bg-[#D97706]'
                                 }`}
-                                style={{ width: `${pct}%` }}
+                                style={{ width: `${market.quorumCoverage.percentage}%` }}
                               />
                             </div>
                             <span
@@ -427,7 +909,9 @@ export default function LaporanWargaPage() {
                           return (
                             <td key={cfg.id} className="px-3 py-3.5 text-center">
                               <Link
-                                href={`/dashboard/laporan-warga/${market.id}?komoditas=${encodeURIComponent(cfg.name)}`}
+                                href={`/dashboard/laporan-warga/${market.id}?komoditas=${encodeURIComponent(
+                                  cfg.name
+                                )}`}
                                 className="block p-1.5 rounded-lg hover:bg-white hover:shadow-xs transition border border-transparent hover:border-[#DED8CD]"
                                 title={`Klik untuk melihat audit ${cfg.name} di ${market.namaPasar}`}
                               >
@@ -444,7 +928,9 @@ export default function LaporanWargaPage() {
                                 ) : isPending ? (
                                   <div className="space-y-0.5">
                                     <span className="font-mono font-medium text-[11px] text-[#706B62] block italic">
-                                      Rp{numberFormat.format(commData.hargaWargaRp || 0)}
+                                      {commData.hargaWargaRp
+                                        ? `Rp${numberFormat.format(commData.hargaWargaRp)}`
+                                        : '—'}
                                     </span>
                                     <span className="inline-flex items-center gap-0.5 rounded-full bg-[#FFFBEB] px-1.5 py-0.5 text-[9.5px] font-bold text-[#D97706]">
                                       <Clock size={9} />
@@ -480,20 +966,16 @@ export default function LaporanWargaPage() {
             </div>
           </div>
 
-          {/* Footer Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1 text-xs text-[#706B62]">
             <p>
-              Badge hijau (<span className="text-[#15803D] font-bold">✓</span>) menandakan kuorum &ge; 10 laporan terpenuhi dan harga konsensus disahkan. Badge kuning (<span className="text-[#D97706] font-bold">⏳</span>) menandakan laporan sedang dikumpulkan.
+              Menampilkan {filteredFlatMarkets.length} dari {allFlatMarkets.length} pasar tradisional resmi Jawa Barat.
             </p>
-            <span className="whitespace-nowrap font-medium text-[#24231F]">
-              Menampilkan {filteredMatrixMarkets.length} dari {allMarketsMulti.length} pasar
-            </span>
           </div>
         </section>
       )}
 
       {/* ========================================================================= */}
-      {/* TAMPILAN 2: AUDIT FOKUS PER KOMODITAS TUNGGAL (CORONG 3 SARINGAN)         */}
+      {/* TAMPILAN 3: AUDIT FOKUS PER KOMODITAS TUNGGAL (CORONG 3 SARINGAN)         */}
       {/* ========================================================================= */}
       {viewMode === 'single' && (
         <section className="space-y-4 pt-1">
@@ -600,214 +1082,136 @@ export default function LaporanWargaPage() {
                   : 'text-[#706B62] hover:text-[#24231F]'
               }`}
             >
-              Semua pasar <span className="ml-1 font-mono font-normal">{singleCounts.all}</span>
+              Semua ({singleCounts.all})
             </button>
-
             <button
               type="button"
               onClick={() => setActiveTabSingle('tercapai')}
-              className={`pb-2.5 font-bold transition ${
+              className={`pb-2.5 font-bold transition flex items-center gap-1.5 ${
                 activeTabSingle === 'tercapai'
-                  ? 'border-b-2 border-[#67151D] text-[#67151D]'
+                  ? 'border-b-2 border-[#15803D] text-[#15803D]'
                   : 'text-[#706B62] hover:text-[#24231F]'
               }`}
             >
-              Kuorum tercapai <span className="ml-1 font-mono font-normal">{singleCounts.tercapai}</span>
+              <CheckCircle2 size={13} />
+              <span>Kuorum Tercapai ({singleCounts.tercapai})</span>
             </button>
-
             <button
               type="button"
               onClick={() => setActiveTabSingle('menunggu')}
-              className={`pb-2.5 font-bold transition ${
+              className={`pb-2.5 font-bold transition flex items-center gap-1.5 ${
                 activeTabSingle === 'menunggu'
-                  ? 'border-b-2 border-[#67151D] text-[#67151D]'
+                  ? 'border-b-2 border-[#D97706] text-[#D97706]'
                   : 'text-[#706B62] hover:text-[#24231F]'
               }`}
             >
-              Menunggu kuorum <span className="ml-1 font-mono font-normal">{singleCounts.menunggu}</span>
+              <Clock size={13} />
+              <span>Menunggu ({singleCounts.menunggu})</span>
             </button>
-
             <button
               type="button"
               onClick={() => setActiveTabSingle('belum_ada')}
-              className={`pb-2.5 font-bold transition ${
+              className={`pb-2.5 font-bold transition flex items-center gap-1.5 ${
                 activeTabSingle === 'belum_ada'
-                  ? 'border-b-2 border-[#67151D] text-[#67151D]'
+                  ? 'border-b-2 border-[#898277] text-[#898277]'
                   : 'text-[#706B62] hover:text-[#24231F]'
               }`}
             >
-              Belum ada laporan <span className="ml-1 font-mono font-normal">{singleCounts.belum_ada}</span>
+              <span>Belum Ada ({singleCounts.belum_ada})</span>
             </button>
           </div>
 
-          {/* Single Table */}
+          {/* Table Single Commodity */}
           <div className="overflow-hidden rounded-xl border border-[#DED8CD] bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#DED8CD] bg-[#FBF9F4] text-[10px] font-extrabold uppercase tracking-wider text-[#706B62]">
-                    <th className="px-4 py-3">PASAR / WILAYAH</th>
+                    <th className="px-4 py-3">PASAR &amp; KAB/KOTA</th>
                     <th className="px-3 py-3 text-center">LAPORAN MASUK</th>
                     <th className="px-3 py-3 text-center">PERANGKAT UNIK</th>
-                    <th className="px-3 py-3 text-center">RADIUS VALID</th>
-                    <th className="px-3 py-3 text-center">OUTLIER MAD</th>
-                    <th className="px-3 py-3 text-center">LAPORAN VALID</th>
-                    <th className="px-4 py-3">STATUS KUORUM</th>
-                    <th className="px-3 py-3 text-right">HARGA WARGA</th>
-                    <th className="px-3 py-3 text-right">HARGA ACUAN</th>
-                    <th className="px-3 py-3 text-center">SELISIH</th>
-                    <th className="px-4 py-3 text-right">DETAIL</th>
+                    <th className="px-3 py-3 text-center">RADIUS &le; 3 KM</th>
+                    <th className="px-3 py-3 text-center">LOLOS MAD</th>
+                    <th className="px-4 py-3 text-right">HARGA WARGA</th>
+                    <th className="px-4 py-3 text-right">HARGA ACUAN</th>
+                    <th className="px-3 py-3 text-center">STATUS KUORUM</th>
+                    <th className="px-4 py-3 text-right">AKSI</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F0ECE4] text-xs">
-                  {filteredSingleMarkets.map((m) => {
-                    const isTercapai = m.statusKuorum === 'tercapai';
-                    const isMenunggu = m.statusKuorum === 'menunggu';
-                    const unitLabel = m.satuan ? `/${m.satuan}` : '/kg';
+                <tbody className="divide-y divide-[#F0ECE4]">
+                  {filteredSingleMarkets.map((market) => (
+                    <tr key={market.id} className="hover:bg-[#FBF9F4] transition">
+                      <td className="px-4 py-3">
+                        <span className="block font-bold text-sm text-[#24231F]">
+                          {market.namaPasar}
+                        </span>
+                        <span className="block text-[11px] text-[#706B62]">
+                          {market.kabupatenKota}
+                        </span>
+                      </td>
 
-                    return (
-                      <tr key={m.id} className="hover:bg-[#FBF9F4] transition">
-                        {/* PASAR / WILAYAH */}
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <span className="block font-bold text-[#24231F]">{m.namaPasar}</span>
-                            {m.quorumCoverage && (
-                              <span
-                                className="inline-flex items-center rounded-full bg-[#F0ECE4] px-2 py-0.5 text-[10px] font-mono font-medium text-[#706B62]"
-                                title={`Total ${m.quorumCoverage.reached} dari 6 komoditas mencapai kuorum di pasar ini`}
-                              >
-                                {m.quorumCoverage.reached}/6 kuorum
-                              </span>
-                            )}
-                          </div>
-                          <span className="block text-[11px] text-[#706B62]">{m.kabupatenKota}</span>
-                        </td>
+                      <td className="px-3 py-3 text-center font-mono font-medium text-[#24231F]">
+                        {market.laporanMasuk}
+                      </td>
 
-                        {/* LAPORAN MASUK */}
-                        <td className="px-3 py-3.5 text-center font-mono font-bold text-[#B91C1C]">
-                          {m.laporanMasuk}
-                        </td>
+                      <td className="px-3 py-3 text-center font-mono font-medium text-[#24231F]">
+                        {market.perangkatUnik}
+                      </td>
 
-                        {/* PERANGKAT UNIK */}
-                        <td className="px-3 py-3.5 text-center font-mono font-bold text-[#1D4ED8]">
-                          {m.perangkatUnik}
-                        </td>
+                      <td className="px-3 py-3 text-center font-mono font-medium text-[#24231F]">
+                        {market.radiusValid}
+                      </td>
 
-                        {/* RADIUS VALID */}
-                        <td className="px-3 py-3.5 text-center font-mono font-bold text-[#15803D]">
-                          {m.radiusValid}
-                        </td>
+                      <td className="px-3 py-3 text-center font-mono font-bold text-[#15803D]">
+                        {market.laporanValid}
+                      </td>
 
-                        {/* OUTLIER MAD */}
-                        <td className="px-3 py-3.5 text-center font-mono font-bold text-[#B45309]">
-                          {m.outlierMad}
-                        </td>
+                      <td className="px-4 py-3 text-right font-mono font-black text-sm text-[#24231F]">
+                        {market.hargaWargaRp
+                          ? `Rp${numberFormat.format(market.hargaWargaRp)}`
+                          : '—'}
+                      </td>
 
-                        {/* LAPORAN VALID */}
-                        <td className="px-3 py-3.5 text-center font-mono font-extrabold text-[#24231F]">
-                          {m.laporanValid}
-                        </td>
+                      <td className="px-4 py-3 text-right font-mono text-xs text-[#706B62]">
+                        Rp{numberFormat.format(market.hargaAcuanRp)}
+                      </td>
 
-                        {/* KUORUM PROGRESS BAR */}
-                        <td className="px-4 py-3.5 w-44">
-                          <div className="space-y-1">
-                            <span
-                              className={`block text-[11px] font-bold ${
-                                isTercapai
-                                  ? 'text-[#15803D]'
-                                  : isMenunggu
-                                  ? 'text-[#D97706]'
-                                  : 'text-[#898277]'
-                              }`}
-                            >
-                              {isTercapai
-                                ? `${m.laporanValid} / 10 · Tercapai`
-                                : isMenunggu
-                                ? `${m.laporanValid} / 10 · Menunggu`
-                                : '0 / 10 · Belum ada'}
-                            </span>
-                            <div className="h-1.5 w-full rounded-full bg-[#EFEAE1] overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  isTercapai
-                                    ? 'bg-[#15803D]'
-                                    : isMenunggu
-                                    ? 'bg-[#D97706]'
-                                    : 'bg-transparent'
-                                }`}
-                                style={{
-                                  width: isTercapai
-                                    ? '100%'
-                                    : isMenunggu
-                                    ? `${Math.min(100, (m.laporanValid / 10) * 100)}%`
-                                    : '0%',
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* HARGA WARGA */}
-                        <td className="px-3 py-3.5 text-right font-mono font-extrabold text-[#24231F]">
-                          {m.hargaWargaRp ? (
-                            <>
-                              Rp{numberFormat.format(m.hargaWargaRp)}
-                              <span className="text-[10px] font-normal text-[#706B62] block">
-                                {unitLabel}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="font-sans font-normal italic text-[#706B62]">
-                              Belum terbentuk
-                            </span>
-                          )}
-                        </td>
-
-                        {/* HARGA ACUAN */}
-                        <td className="px-3 py-3.5 text-right font-mono text-[#4A4740]">
-                          Rp{numberFormat.format(m.hargaAcuanRp)}
-                          <span className="text-[10px] font-normal text-[#706B62] block">
-                            {unitLabel}
+                      <td className="px-3 py-3 text-center">
+                        {market.statusKuorum === 'tercapai' && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#E3F0E7] px-2 py-0.5 text-[10px] font-bold text-[#15803D]">
+                            <CheckCircle2 size={11} />
+                            <span>Tercapai</span>
                           </span>
-                        </td>
+                        )}
+                        {market.statusKuorum === 'menunggu' && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#FFFBEB] px-2 py-0.5 text-[10px] font-bold text-[#D97706]">
+                            <Clock size={11} />
+                            <span>Menunggu ({market.laporanValid}/10)</span>
+                          </span>
+                        )}
+                        {market.statusKuorum === 'belum_ada' && (
+                          <span className="inline-flex items-center rounded-full bg-[#F0ECE4] px-2 py-0.5 text-[10px] font-bold text-[#706B62]">
+                            <span>Belum Ada</span>
+                          </span>
+                        )}
+                      </td>
 
-                        {/* SELISIH */}
-                        <td className="px-3 py-3.5 text-center font-mono font-bold">
-                          {m.selisihPct !== null ? (
-                            <span className={m.selisihPct > 0 ? 'text-[#67151D]' : 'text-[#15803D]'}>
-                              {m.selisihPct > 0 ? '+' : ''}
-                              {m.selisihPct.toFixed(1)}%
-                            </span>
-                          ) : (
-                            <span className="text-[#898277] font-sans font-normal">-</span>
-                          )}
-                        </td>
-
-                        {/* DETAIL LINK */}
-                        <td className="px-4 py-3.5 text-right">
-                          <Link
-                            href={`/dashboard/laporan-warga/${m.id}?komoditas=${encodeURIComponent(selectedCommodity)}`}
-                            className="text-xs font-bold text-[#67151D] hover:underline whitespace-nowrap"
-                          >
-                            Buka detail &rarr;
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <Link
+                          href={`/dashboard/laporan-warga/${market.id}?komoditas=${encodeURIComponent(
+                            selectedCommodity
+                          )}`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-[#67151D] hover:underline"
+                        >
+                          <span>Rincian</span>
+                          <ArrowRight size={12} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* Footer Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1 text-xs text-[#706B62]">
-            <p>
-              Status kuorum di atas dihitung khusus untuk komoditas <strong>{selectedCommodity}</strong> pada masing-masing pasar berdasarkan 3 saringan konsensus aktif hari ini.
-            </p>
-            <span className="whitespace-nowrap font-medium text-[#24231F]">
-              Menampilkan {filteredSingleMarkets.length} dari {marketsForSingleCommodity.length} pasar
-            </span>
           </div>
         </section>
       )}

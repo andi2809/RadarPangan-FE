@@ -424,6 +424,27 @@ function DashboardContent() {
 
   const affordability = activeRegionTelemetry?.affordability;
 
+  // Top 5 regions with highest price pressure vs HAP (EWS Shortcut)
+  const topPressureRegions = useMemo(() => {
+    return Object.values(allTelemetry)
+      .filter((t) => t.region && t.currentPrice?.hargaAktualRp)
+      .map((t) => {
+        const price = t.currentPrice.hargaAktualRp;
+        const acuan = t.currentPrice.hargaAcuanRp || selectedCommodityObj?.hargaAcuanRp || 45000;
+        const deviasiPct = Number((((price - acuan) / Math.max(1, acuan)) * 100).toFixed(1));
+        return {
+          id: t.region.id,
+          name: t.region.name,
+          currentPriceRp: price,
+          hargaAcuanRp: acuan,
+          deviasiPct,
+          status: t.currentPrice.status,
+        };
+      })
+      .sort((a, b) => b.deviasiPct - a.deviasiPct)
+      .slice(0, 5);
+  }, [allTelemetry, selectedCommodityObj]);
+
   // Map-first selection callback: clicking selected region again resets to All Jabar
   const handleSelectRegion = useCallback((regionId: string) => {
     setSelectedRegionId((prev) => (prev === regionId ? 'all_jabar' : regionId));
@@ -480,6 +501,9 @@ function DashboardContent() {
             hasData={hasData}
             citizenReport={activeCitizenReport}
             multiWindow={activeForecastBundle?.multiWindow ?? null}
+            topPressureRegions={topPressureRegions}
+            selectedRegionId={selectedRegionId}
+            onSelectRegion={handleSelectRegion}
           />
         }
       />
