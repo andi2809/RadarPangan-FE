@@ -941,299 +941,6 @@ export interface MarketDetailConsensusData {
   quorumCoverage: { reached: number; total: number };
 }
 
-/**
- * Resolver komprehensif data audit halaman detail `[marketId]` berdasarkan komoditas aktif.
- * Mendukung seluruh 133 pasar resmi dari 27 Kabupaten/Kota di Jawa Barat.
- */
-export function getMarketDetailConsensus(
-  marketId: string,
-  commodityKey: string
-): MarketDetailConsensusData {
-  const normKey = normalizeCommodityKey(commodityKey);
-  const cfg =
-    COMMODITY_CONSENSUS_CONFIGS.find((c) => c.id === normKey) ||
-    COMMODITY_CONSENSUS_CONFIGS[0];
-
-  // 1. Cari base pasar di MOCK_MARKET_CONSENSUS
-  let base = MOCK_MARKET_CONSENSUS.find((m) => m.id === marketId);
-  let officialMeta: OfficialMarket | undefined;
-  let regionMeta: RegionMarketDirectory | undefined;
-
-  if (!base) {
-    // Cari di seluruh 133 pasar resmi OFFICIAL_MARKETS_BY_REGION
-    for (const rKey of Object.keys(OFFICIAL_MARKETS_BY_REGION)) {
-      const dir = OFFICIAL_MARKETS_BY_REGION[rKey];
-      const found = dir.markets.find((m) => m.id === marketId);
-      if (found) {
-        officialMeta = found;
-        regionMeta = dir;
-        break;
-      }
-    }
-  }
-
-  // Jika pasar berasal dari direktori pasar sekunder non-anchor
-  if (officialMeta && regionMeta && !base) {
-    const summary = getOfficialMarketCommoditySummary(officialMeta, regionMeta, 0);
-    const commData = summary.commodities[normKey];
-
-    const diLuarRadius = commData.laporanMasuk > 2 ? 1 : 0;
-    const duplikasiPerangkat = commData.laporanMasuk > 4 ? 1 : 0;
-    const outlierMad = commData.statusKuorum === 'tercapai' ? 1 : 0;
-
-    let auditReports: AuditReportItem[] = [];
-    if (commData.laporanMasuk > 0) {
-      const codePrefix = officialMeta.id.replace('psr-', '').toUpperCase();
-      const basePrice = commData.hargaWargaRp || cfg.hargaAcuanRp;
-      const reports: AuditReportItem[] = [];
-
-      for (let i = 0; i < commData.laporanValid; i++) {
-        const minute = (15 - i * 4 + 60) % 60;
-        const hour = 9 - Math.floor((i * 4) / 60);
-        const delta = ((i % 5) - 2) * (cfg.satuan === 'kg' && cfg.hargaAcuanRp > 20000 ? 500 : 200);
-        reports.push({
-          id: `RPT-${codePrefix}-${String(i + 1).padStart(3, '0')}`,
-          waktuLapor: `24 Okt 2026, ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-          hargaRp: Math.round((basePrice + delta) / 100) * 100,
-          jarakKm: Number((0.6 + (i % 5) * 0.4).toFixed(1)),
-          status: 'valid',
-          keterangan: 'Masuk radius ≤ 3 km, lolos saringan MAD',
-        });
-      }
-
-      if (outlierMad > 0) {
-        reports.push({
-          id: `RPT-${codePrefix}-${String(commData.laporanValid + 1).padStart(3, '0')}`,
-          waktuLapor: '24 Okt 2026, 08:44',
-          hargaRp: Math.round((basePrice * 1.15) / 100) * 100,
-          jarakKm: 1.8,
-          status: 'outlier',
-          keterangan: 'Deviasi +15.0% dari median (> batas toleransi 10%)',
-        });
-      }
-
-      if (diLuarRadius > 0) {
-        reports.push({
-          id: `RPT-${codePrefix}-${String(commData.laporanValid + outlierMad + 1).padStart(3, '0')}`,
-          waktuLapor: '24 Okt 2026, 07:18',
-          hargaRp: basePrice,
-          jarakKm: 4.5,
-          status: 'radius_invalid',
-          keterangan: 'Jarak 4.5 km dari koordinat pasar (> batas radius 3 km)',
-        });
-      }
-
-      auditReports = reports;
-    }
-
-    // Histogram Bins
-    let histogramBins: Array<{ price: number; label: string; count: number; isMedian?: boolean }> = [];
-    if (commData.laporanValid > 0) {
-      const med = commData.hargaWargaRp || cfg.hargaAcuanRp;
-      const step = cfg.hargaAcuanRp > 20000 ? 500 : 200;
-      histogramBins = [
-        { price: med - step * 2, label: (med - step * 2).toLocaleString('id-ID'), count: Math.max(1, Math.floor(commData.laporanValid * 0.15)) },
-        { price: med - step, label: (med - step).toLocaleString('id-ID'), count: Math.max(1, Math.floor(commData.laporanValid * 0.25)) },
-        { price: med, label: med.toLocaleString('id-ID'), count: Math.max(2, Math.floor(commData.laporanValid * 0.4)), isMedian: true },
-        { price: med + step, label: (med + step).toLocaleString('id-ID'), count: Math.max(1, Math.floor(commData.laporanValid * 0.2)) },
-      ];
-    }
-
-    return {
-      market: {
-        id: officialMeta.id,
-        namaPasar: officialMeta.name,
-        kabupatenKota: regionMeta.regionName,
-        regionId: regionMeta.regionId,
-        instansiPengelola: officialMeta.pengelola || regionMeta.instansiPengelola,
-      },
-      commodity: cfg,
-      kpi: {
-        laporanMasuk: commData.laporanMasuk,
-        perangkatUnik: Math.max(0, commData.laporanMasuk - duplikasiPerangkat),
-        radiusValid: Math.max(0, commData.laporanMasuk - duplikasiPerangkat - diLuarRadius),
-        diLuarRadius,
-        outlierMad,
-        laporanValid: commData.laporanValid,
-        statusKuorum: commData.statusKuorum,
-      },
-      hargaWargaRp: commData.hargaWargaRp,
-      hargaAcuanRp: cfg.hargaAcuanRp,
-      selisihPct: commData.selisihPct,
-      histogramBins,
-      auditReports,
-      quorumCoverage: {
-        reached: summary.quorumCoverage.reached,
-        total: summary.quorumCoverage.total,
-      },
-    };
-  }
-
-  // Jika tidak ditemukan sama sekali, fallback ke pasar pertama
-  if (!base) {
-    base = MOCK_MARKET_CONSENSUS[0];
-  }
-
-  const coverage = getMarketQuorumCoverage(base.id);
-
-  // Ambil data konsensus spesifik komoditas
-  const commodityMarkets = getMarketConsensusByCommodity(normKey);
-  const currentConsensus =
-    commodityMarkets.find((m) => m.id === base.id) || commodityMarkets[0];
-
-  const diLuarRadius = Math.max(0, currentConsensus.perangkatUnik - currentConsensus.radiusValid);
-  const duplikasiPerangkat = Math.max(0, currentConsensus.laporanMasuk - currentConsensus.perangkatUnik);
-
-  // 1. Audit Reports
-  let auditReports: AuditReportItem[] = [];
-  if (base.id === 'psr-bekasikab-01' && normKey === 'cabai_rawit_merah') {
-    auditReports = [...DEFAULT_CIKARANG_CABAI_AUDIT_REPORTS];
-  } else if (currentConsensus.laporanMasuk === 0) {
-    auditReports = [];
-  } else {
-    const codePrefix = base.id.replace('psr-', '').toUpperCase();
-    const reports: AuditReportItem[] = [];
-    const basePrice = currentConsensus.hargaWargaRp || cfg.hargaAcuanRp;
-    const startHour = 9;
-    const startMinute = 15;
-
-    // A. Laporan Valid
-    for (let i = 0; i < currentConsensus.laporanValid; i++) {
-      const minute = (startMinute - i * 4 + 60) % 60;
-      const hour = startHour - Math.floor((i * 4) / 60);
-      const timeStr = `24 Okt 2026, ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      const deltaFactor = ((i % 5) - 2) * (cfg.satuan === 'kg' && cfg.hargaAcuanRp > 20000 ? 500 : 200);
-      const reportPrice = Math.round((basePrice + deltaFactor) / 100) * 100;
-      const distance = Number((0.5 + (i % 6) * 0.4).toFixed(1));
-
-      reports.push({
-        id: `RPT-${codePrefix}-${String(i + 1).padStart(3, '0')}`,
-        waktuLapor: timeStr,
-        hargaRp: reportPrice,
-        jarakKm: distance,
-        status: 'valid',
-        keterangan: 'Masuk radius ≤ 3 km, dalam rentang harga wajar',
-      });
-    }
-
-    // B. Outlier MAD
-    for (let i = 0; i < currentConsensus.outlierMad; i++) {
-      const idx = currentConsensus.laporanValid + i + 1;
-      const extremePrice = Math.round((basePrice * 1.14) / 100) * 100;
-      reports.push({
-        id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
-        waktuLapor: '24 Okt 2026, 08:42',
-        hargaRp: extremePrice,
-        jarakKm: 2.1,
-        status: 'outlier',
-        keterangan: `Deviasi +14.0% dari median (> batas toleransi 10%)`,
-      });
-    }
-
-    // C. Di Luar Radius (> 3 km)
-    for (let i = 0; i < diLuarRadius; i++) {
-      const idx = currentConsensus.laporanValid + currentConsensus.outlierMad + i + 1;
-      reports.push({
-        id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
-        waktuLapor: '24 Okt 2026, 07:15',
-        hargaRp: basePrice,
-        jarakKm: 4.8,
-        status: 'radius_invalid',
-        keterangan: 'Jarak 4.8 km dari koordinat pasar (> batas radius 3 km)',
-      });
-    }
-
-    // D. Duplikasi Perangkat
-    for (let i = 0; i < duplikasiPerangkat; i++) {
-      const idx = currentConsensus.laporanValid + currentConsensus.outlierMad + diLuarRadius + i + 1;
-      reports.push({
-        id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
-        waktuLapor: '24 Okt 2026, 07:05',
-        hargaRp: basePrice,
-        jarakKm: 1.0,
-        status: 'duplicate',
-        keterangan: 'Duplikasi perangkat: Perangkat telah mengirim suara hari ini',
-      });
-    }
-
-    auditReports = reports;
-  }
-
-  // 2. Histogram Bins
-  let histogramBins: Array<{ price: number; label: string; count: number; isMedian?: boolean }> = [];
-  if (base.id === 'psr-bekasikab-01' && normKey === 'cabai_rawit_merah') {
-    histogramBins = [
-      { price: 47000, label: '47.000', count: 1 },
-      { price: 47500, label: '47.500', count: 0 },
-      { price: 48000, label: '48.000', count: 1 },
-      { price: 48500, label: '48.500', count: 2 },
-      { price: 49000, label: '49.000', count: 2 },
-      { price: 49500, label: '49.500', count: 4, isMedian: true },
-      { price: 50000, label: '50.000', count: 2 },
-      { price: 50500, label: '50.500', count: 1 },
-      { price: 51000, label: '51.000', count: 1 },
-      { price: 51500, label: '51.500', count: 0 },
-      { price: 52000, label: '52.000', count: 1 },
-    ];
-  } else if (currentConsensus.laporanValid > 0) {
-    const med = currentConsensus.hargaWargaRp || cfg.hargaAcuanRp;
-    const step = cfg.hargaAcuanRp > 20000 ? 500 : 200;
-    const totalValid = currentConsensus.laporanValid;
-
-    const binWeights = [1, 2, 3, 5, 8, 4, 2, 1, 1];
-    const totalWeight = binWeights.reduce((a, b) => a + b, 0);
-
-    let assigned = 0;
-    histogramBins = binWeights.map((w, idx) => {
-      const offset = (idx - 4) * step;
-      const binPrice = med + offset;
-      const isMedian = idx === 4;
-      let count = Math.round((w / totalWeight) * totalValid);
-      if (isMedian) {
-        count = Math.max(1, count);
-      }
-      assigned += count;
-      return {
-        price: binPrice,
-        label: binPrice.toLocaleString('id-ID'),
-        count,
-        isMedian,
-      };
-    });
-
-    const diff = totalValid - assigned;
-    if (diff !== 0 && histogramBins[4]) {
-      histogramBins[4].count = Math.max(1, histogramBins[4].count + diff);
-    }
-  }
-
-  return {
-    market: {
-      id: base.id,
-      namaPasar: base.namaPasar,
-      kabupatenKota: base.kabupatenKota,
-      regionId: base.regionId,
-      instansiPengelola: `UPTD Pengelola ${base.namaPasar}`,
-    },
-    commodity: cfg,
-    kpi: {
-      laporanMasuk: currentConsensus.laporanMasuk,
-      perangkatUnik: currentConsensus.perangkatUnik,
-      radiusValid: currentConsensus.radiusValid,
-      diLuarRadius,
-      outlierMad: currentConsensus.outlierMad,
-      laporanValid: currentConsensus.laporanValid,
-      statusKuorum: currentConsensus.statusKuorum,
-    },
-    hargaWargaRp: currentConsensus.hargaWargaRp,
-    hargaAcuanRp: currentConsensus.hargaAcuanRp,
-    selisihPct: currentConsensus.selisihPct,
-    histogramBins,
-    auditReports,
-    quorumCoverage: coverage,
-  };
-}
-
 export interface MarketMultiCommoditySummary {
   id: string;
   namaPasar: string;
@@ -1257,6 +964,11 @@ export interface MarketMultiCommoditySummary {
       statusKuorum: 'tercapai' | 'menunggu' | 'belum_ada';
       laporanValid: number;
       laporanMasuk: number;
+      duplikasiPerangkat?: number;
+      diLuarRadius?: number;
+      radiusValid?: number;
+      outlierMad?: number;
+      perangkatUnik?: number;
     }
   >;
 }
@@ -1275,12 +987,21 @@ export interface RegionConsensusGroup {
 
 /**
  * Generator deterministik matriks multi-komoditas untuk pasar resmi (133 pasar di Jawa Barat).
+ * Menjamin konsistensi matematis ketat pada setiap saringan:
+ * Laporan Masuk = Perangkat Unik + Duplikasi
+ * Perangkat Unik = Radius Valid + Di Luar Radius
+ * Radius Valid = Laporan Valid + Outlier MAD
  */
 export function getOfficialMarketCommoditySummary(
   market: OfficialMarket,
   regionDir: RegionMarketDirectory,
-  indexInRegion: number
+  indexInRegion?: number
 ): MarketMultiCommoditySummary {
+  const actualIndex =
+    indexInRegion !== undefined
+      ? indexInRegion
+      : Math.max(0, regionDir.markets.findIndex((m) => m.id === market.id));
+
   // Cek apakah pasar ini merupakan anchor market di MOCK_MARKET_CONSENSUS
   const anchor = MOCK_MARKET_CONSENSUS.find(
     (b) => b.id === market.id || b.namaPasar.toLowerCase() === market.name.toLowerCase()
@@ -1294,6 +1015,8 @@ export function getOfficialMarketCommoditySummary(
 
     for (const cfg of COMMODITY_CONSENSUS_CONFIGS) {
       if (cfg.id === 'cabai_rawit_merah') {
+        const dup = Math.max(0, anchor.laporanMasuk - anchor.perangkatUnik);
+        const diLuar = Math.max(0, anchor.perangkatUnik - anchor.radiusValid);
         totalMasuk += anchor.laporanMasuk;
         totalValid += anchor.laporanValid;
         commoditiesObj[cfg.id] = {
@@ -1306,10 +1029,18 @@ export function getOfficialMarketCommoditySummary(
           statusKuorum: anchor.statusKuorum,
           laporanValid: anchor.laporanValid,
           laporanMasuk: anchor.laporanMasuk,
+          duplikasiPerangkat: dup,
+          diLuarRadius: diLuar,
+          radiusValid: anchor.radiusValid,
+          outlierMad: anchor.outlierMad,
+          perangkatUnik: anchor.perangkatUnik,
         };
       } else {
         const item = MARKET_COMMODITY_MATRIX[anchor.id]?.[cfg.id];
         const masuk = item?.masuk || 0;
+        const unik = item?.unik || masuk;
+        const radius = item?.radius || unik;
+        const outlier = item?.outlier || 0;
         const valid = item?.valid || 0;
         const harga = item?.harga || null;
         const status = item?.status || 'belum_ada';
@@ -1330,6 +1061,11 @@ export function getOfficialMarketCommoditySummary(
           statusKuorum: status,
           laporanValid: valid,
           laporanMasuk: masuk,
+          duplikasiPerangkat: Math.max(0, masuk - unik),
+          diLuarRadius: Math.max(0, unik - radius),
+          radiusValid: radius,
+          outlierMad: outlier,
+          perangkatUnik: unik,
         };
       }
     }
@@ -1363,38 +1099,53 @@ export function getOfficialMarketCommoditySummary(
   for (let cIdx = 0; cIdx < COMMODITY_CONSENSUS_CONFIGS.length; cIdx++) {
     const cfg = COMMODITY_CONSENSUS_CONFIGS[cIdx];
     let masuk = 0;
+    let duplikasiPerangkat = 0;
+    let diLuarRadius = 0;
+    let outlierMad = 0;
     let valid = 0;
     let status: 'tercapai' | 'menunggu' | 'belum_ada' = 'belum_ada';
     let harga: number | null = null;
     let selisih: number | null = null;
 
     if (isWholesale) {
-      // Pasar Induk sekunder: volume tinggi, 4 komoditas kuorum
+      // Pasar Induk sekunder (misal Pasar Induk Cibitung): volume tinggi
       if (cIdx < 4) {
-        masuk = 18 - cIdx * 2 + (indexInRegion % 3);
-        valid = masuk - 2;
+        masuk = 20 - cIdx * 2 + (actualIndex % 3);
+        duplikasiPerangkat = 1;
+        diLuarRadius = 1;
+        outlierMad = 1;
+        valid = masuk - duplikasiPerangkat - diLuarRadius - outlierMad;
         status = 'tercapai';
         const priceOffset = ((cIdx % 3) - 1) * 300;
         harga = cfg.hargaAcuanRp + priceOffset;
         selisih = Number((((harga - cfg.hargaAcuanRp) / cfg.hargaAcuanRp) * 100).toFixed(1));
         reachedQuorum++;
       } else {
-        masuk = 6 - (cIdx - 4) * 2;
-        valid = masuk;
-        status = masuk >= 10 ? 'tercapai' : 'menunggu';
+        masuk = Math.max(0, 6 - (cIdx - 4) * 2);
+        duplikasiPerangkat = 0;
+        diLuarRadius = masuk > 3 ? 1 : 0;
+        outlierMad = 0;
+        valid = masuk - duplikasiPerangkat - diLuarRadius - outlierMad;
+        status = valid >= 10 ? 'tercapai' : (masuk > 0 ? 'menunggu' : 'belum_ada');
         if (status === 'tercapai') reachedQuorum++;
       }
-    } else if (indexInRegion === 1 || indexInRegion === 2) {
+    } else if (actualIndex === 1 || actualIndex === 2) {
       // Pasar kecamatan primer: 1-2 komoditas kuorum (Cabai atau Beras)
-      if (cIdx === 0 && indexInRegion === 1) {
+      if (cIdx === 0 && actualIndex === 1) {
         masuk = 12;
+        duplikasiPerangkat = 1;
+        diLuarRadius = 0;
+        outlierMad = 1;
         valid = 10;
         status = 'tercapai';
         harga = Math.round((cfg.hargaAcuanRp * 1.025) / 100) * 100;
         selisih = 2.5;
         reachedQuorum++;
-      } else if (cIdx === 1 && indexInRegion === 2) {
-        masuk = 11;
+      } else if (cIdx === 1 && actualIndex === 2) {
+        masuk = 12;
+        duplikasiPerangkat = 1;
+        diLuarRadius = 1;
+        outlierMad = 0;
         valid = 10;
         status = 'tercapai';
         harga = Math.round((cfg.hargaAcuanRp * 1.02) / 100) * 100;
@@ -1402,22 +1153,34 @@ export function getOfficialMarketCommoditySummary(
         reachedQuorum++;
       } else if (cIdx < 3) {
         masuk = 6 - cIdx;
-        valid = masuk;
+        duplikasiPerangkat = 0;
+        diLuarRadius = 1;
+        outlierMad = 0;
+        valid = masuk - 1;
         status = 'menunggu';
       } else {
         masuk = 2 - (cIdx % 2);
+        duplikasiPerangkat = 0;
+        diLuarRadius = 0;
+        outlierMad = 0;
         valid = masuk;
         status = masuk > 0 ? 'menunggu' : 'belum_ada';
       }
     } else {
-      // Pasar kecamatan sekunder/pinggiran: laporan minim (0-4 laporan, belum kuorum)
+      // Pasar kecamatan sekunder/pinggiran (actualIndex >= 3): laporan minim (0-4 laporan)
       if (cIdx === 0) {
-        masuk = Math.max(0, 3 - indexInRegion % 3);
-        valid = masuk;
+        masuk = Math.max(0, 4 - actualIndex % 3);
+        duplikasiPerangkat = 0;
+        diLuarRadius = masuk > 2 ? 1 : 0;
+        outlierMad = 0;
+        valid = masuk - diLuarRadius;
         status = masuk > 0 ? 'menunggu' : 'belum_ada';
       } else if (cIdx === 1) {
-        masuk = Math.max(0, 2 - indexInRegion % 2);
-        valid = masuk;
+        masuk = Math.max(0, 3 - actualIndex % 2);
+        duplikasiPerangkat = 0;
+        diLuarRadius = masuk > 2 ? 1 : 0;
+        outlierMad = 0;
+        valid = masuk - diLuarRadius;
         status = masuk > 0 ? 'menunggu' : 'belum_ada';
       } else {
         masuk = 0;
@@ -1425,6 +1188,9 @@ export function getOfficialMarketCommoditySummary(
         status = 'belum_ada';
       }
     }
+
+    const perangkatUnik = masuk - duplikasiPerangkat;
+    const radiusValid = perangkatUnik - diLuarRadius;
 
     totalMasuk += masuk;
     totalValid += valid;
@@ -1439,6 +1205,11 @@ export function getOfficialMarketCommoditySummary(
       statusKuorum: status,
       laporanValid: valid,
       laporanMasuk: masuk,
+      duplikasiPerangkat,
+      diLuarRadius,
+      radiusValid,
+      outlierMad,
+      perangkatUnik,
     };
   }
 
@@ -1458,6 +1229,195 @@ export function getOfficialMarketCommoditySummary(
       percentage: Math.round((reachedQuorum / COMMODITY_CONSENSUS_CONFIGS.length) * 100),
     },
     commodities: commoditiesObj,
+  };
+}
+
+/**
+ * Mencari ringkasan multi-komoditas pasar berdasarkan ID secara akurat (baik anchor maupun seluruh 133 pasar).
+ */
+export function getMarketSummaryById(marketId: string): MarketMultiCommoditySummary {
+  // 1. Cek anchor markets
+  const anchor = MOCK_MARKET_CONSENSUS.find((b) => b.id === marketId);
+  if (anchor) {
+    const regDir = OFFICIAL_MARKETS_BY_REGION[anchor.regionId];
+    const offMarket = regDir?.markets.find((m) => m.id === anchor.id) || {
+      id: anchor.id,
+      name: anchor.namaPasar,
+      kecamatan: '',
+      pengelola: `UPTD Pengelola ${anchor.namaPasar}`,
+    };
+    return getOfficialMarketCommoditySummary(
+      offMarket,
+      regDir || {
+        regionId: anchor.regionId,
+        regionName: anchor.kabupatenKota,
+        instansiPengelola: `UPTD Pengelola ${anchor.namaPasar}`,
+        markets: [offMarket],
+      },
+      0
+    );
+  }
+
+  // 2. Cek di seluruh 133 pasar resmi
+  for (const rKey of Object.keys(OFFICIAL_MARKETS_BY_REGION)) {
+    const dir = OFFICIAL_MARKETS_BY_REGION[rKey];
+    const idx = dir.markets.findIndex((m) => m.id === marketId);
+    if (idx >= 0) {
+      return getOfficialMarketCommoditySummary(dir.markets[idx], dir, idx);
+    }
+  }
+
+  // Fallback ke pasar pertama (Pasar Baru Cikarang)
+  const defaultDir = OFFICIAL_MARKETS_BY_REGION['32.16'];
+  return getOfficialMarketCommoditySummary(defaultDir.markets[0], defaultDir, 0);
+}
+
+/**
+ * Resolver komprehensif data audit halaman detail `[marketId]` berdasarkan komoditas aktif.
+ * Menggunakan Single Source of Truth dari getMarketSummaryById sehingga 100% konsisten dengan tabel list.
+ */
+export function getMarketDetailConsensus(
+  marketId: string,
+  commodityKey: string
+): MarketDetailConsensusData {
+  const normKey = normalizeCommodityKey(commodityKey);
+  const cfg =
+    COMMODITY_CONSENSUS_CONFIGS.find((c) => c.id === normKey) ||
+    COMMODITY_CONSENSUS_CONFIGS[0];
+
+  const summary = getMarketSummaryById(marketId);
+  const commData = summary.commodities[normKey];
+
+  const laporanMasuk = commData.laporanMasuk;
+  const duplikasiPerangkat = commData.duplikasiPerangkat ?? 0;
+  const perangkatUnik = commData.perangkatUnik ?? (laporanMasuk - duplikasiPerangkat);
+  const diLuarRadius = commData.diLuarRadius ?? 0;
+  const radiusValid = commData.radiusValid ?? (perangkatUnik - diLuarRadius);
+  const outlierMad = commData.outlierMad ?? 0;
+  const laporanValid = commData.laporanValid;
+  const statusKuorum = commData.statusKuorum;
+
+  // 1. Audit Reports
+  let auditReports: AuditReportItem[] = [];
+  if (summary.id === 'psr-bekasikab-01' && normKey === 'cabai_rawit_merah') {
+    auditReports = [...DEFAULT_CIKARANG_CABAI_AUDIT_REPORTS];
+  } else if (laporanMasuk > 0) {
+    const codePrefix = summary.id.replace('psr-', '').toUpperCase();
+    const basePrice = commData.hargaWargaRp || cfg.hargaAcuanRp;
+    const reports: AuditReportItem[] = [];
+    const startHour = 9;
+    const startMinute = 15;
+
+    // A. Laporan Valid
+    for (let i = 0; i < laporanValid; i++) {
+      const minute = (startMinute - i * 4 + 60) % 60;
+      const hour = startHour - Math.floor((i * 4) / 60);
+      const timeStr = `24 Okt 2026, ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      const delta = ((i % 5) - 2) * (cfg.satuan === 'kg' && cfg.hargaAcuanRp > 20000 ? 500 : 200);
+      reports.push({
+        id: `RPT-${codePrefix}-${String(i + 1).padStart(3, '0')}`,
+        waktuLapor: timeStr,
+        hargaRp: Math.round((basePrice + delta) / 100) * 100,
+        jarakKm: Number((0.6 + (i % 5) * 0.4).toFixed(1)),
+        status: 'valid',
+        keterangan: 'Masuk radius ≤ 3 km, lolos saringan MAD',
+      });
+    }
+
+    // B. Outlier MAD
+    for (let i = 0; i < outlierMad; i++) {
+      const idx = laporanValid + i + 1;
+      const extremePrice = Math.round((basePrice * 1.15) / 100) * 100;
+      reports.push({
+        id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
+        waktuLapor: '24 Okt 2026, 08:44',
+        hargaRp: extremePrice,
+        jarakKm: 1.8,
+        status: 'outlier',
+        keterangan: `Deviasi +15.0% dari median (> batas toleransi 10%)`,
+      });
+    }
+
+    // C. Di Luar Radius
+    for (let i = 0; i < diLuarRadius; i++) {
+      const idx = laporanValid + outlierMad + i + 1;
+      reports.push({
+        id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
+        waktuLapor: '24 Okt 2026, 07:18',
+        hargaRp: basePrice,
+        jarakKm: 4.5,
+        status: 'radius_invalid',
+        keterangan: 'Jarak 4.5 km dari koordinat pasar (> batas radius 3 km)',
+      });
+    }
+
+    // D. Duplikasi Perangkat
+    for (let i = 0; i < duplikasiPerangkat; i++) {
+      const idx = laporanValid + outlierMad + diLuarRadius + i + 1;
+      reports.push({
+        id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
+        waktuLapor: '24 Okt 2026, 07:05',
+        hargaRp: basePrice,
+        jarakKm: 1.0,
+        status: 'duplicate',
+        keterangan: 'Duplikasi perangkat: Perangkat telah mengirim suara hari ini',
+      });
+    }
+
+    auditReports = reports;
+  }
+
+  // 2. Histogram Bins
+  let histogramBins: Array<{ price: number; label: string; count: number; isMedian?: boolean }> = [];
+  if (summary.id === 'psr-bekasikab-01' && normKey === 'cabai_rawit_merah') {
+    histogramBins = [
+      { price: 47000, label: '47.000', count: 1 },
+      { price: 47500, label: '47.500', count: 0 },
+      { price: 48000, label: '48.000', count: 1 },
+      { price: 48500, label: '48.500', count: 2 },
+      { price: 49000, label: '49.000', count: 2 },
+      { price: 49500, label: '49.500', count: 4, isMedian: true },
+      { price: 50000, label: '50.000', count: 2 },
+      { price: 50500, label: '50.500', count: 1 },
+      { price: 51000, label: '51.000', count: 1 },
+      { price: 51500, label: '51.500', count: 0 },
+      { price: 52000, label: '52.000', count: 1 },
+    ];
+  } else if (laporanValid > 0) {
+    const med = commData.hargaWargaRp || cfg.hargaAcuanRp;
+    const step = cfg.hargaAcuanRp > 20000 ? 500 : 200;
+    histogramBins = [
+      { price: med - step * 2, label: (med - step * 2).toLocaleString('id-ID'), count: Math.max(1, Math.floor(laporanValid * 0.15)) },
+      { price: med - step, label: (med - step).toLocaleString('id-ID'), count: Math.max(1, Math.floor(laporanValid * 0.25)) },
+      { price: med, label: med.toLocaleString('id-ID'), count: Math.max(2, Math.floor(laporanValid * 0.4)), isMedian: true },
+      { price: med + step, label: (med + step).toLocaleString('id-ID'), count: Math.max(1, Math.floor(laporanValid * 0.2)) },
+    ];
+  }
+
+  return {
+    market: {
+      id: summary.id,
+      namaPasar: summary.namaPasar,
+      kabupatenKota: summary.kabupatenKota,
+      regionId: summary.regionId,
+      instansiPengelola: summary.pengelola || `UPTD Pengelola ${summary.namaPasar}`,
+    },
+    commodity: cfg,
+    kpi: {
+      laporanMasuk,
+      perangkatUnik,
+      radiusValid,
+      diLuarRadius,
+      outlierMad,
+      laporanValid,
+      statusKuorum,
+    },
+    hargaWargaRp: commData.hargaWargaRp,
+    hargaAcuanRp: cfg.hargaAcuanRp,
+    selisihPct: commData.selisihPct,
+    histogramBins,
+    auditReports,
+    quorumCoverage: summary.quorumCoverage,
   };
 }
 

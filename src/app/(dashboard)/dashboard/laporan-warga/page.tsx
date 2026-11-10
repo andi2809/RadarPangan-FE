@@ -657,7 +657,7 @@ export default function LaporanWargaPage() {
                                 MINYAK CURAH
                                 <span className="block font-normal text-[8.5px] text-[#898277]">HET Rp15.700</span>
                               </th>
-                              <th className="px-4 py-2.5 text-right">AUDIT</th>
+                              <th className="px-4 py-2.5 text-right min-w-[120px]">DETAIL PASAR</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#F0ECE4]">
@@ -788,9 +788,9 @@ export default function LaporanWargaPage() {
                                   <td className="px-4 py-3 text-right whitespace-nowrap">
                                     <Link
                                       href={`/dashboard/laporan-warga/${market.id}`}
-                                      className="inline-flex items-center gap-1 text-xs font-bold text-[#67151D] hover:underline"
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#DED8CD] bg-white px-2.5 py-1 text-xs font-bold text-[#67151D] shadow-xs hover:border-[#67151D] hover:bg-[#FDF2F4] transition"
                                     >
-                                      <span>Audit</span>
+                                      <span>Detail Pasar</span>
                                       <ArrowRight size={12} />
                                     </Link>
                                   </td>
@@ -855,7 +855,7 @@ export default function LaporanWargaPage() {
                       MINYAK CURAH
                       <span className="block font-normal text-[9px] text-[#898277]">HET Rp15.700</span>
                     </th>
-                    <th className="px-4 py-3 text-right">AUDIT</th>
+                    <th className="px-4 py-3 text-right min-w-[120px]">DETAIL PASAR</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0ECE4] text-xs">
@@ -967,9 +967,9 @@ export default function LaporanWargaPage() {
                         <td className="px-4 py-3.5 text-right whitespace-nowrap">
                           <Link
                             href={`/dashboard/laporan-warga/${market.id}`}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-[#67151D] hover:underline"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#DED8CD] bg-white px-2.5 py-1 text-xs font-bold text-[#67151D] shadow-xs hover:border-[#67151D] hover:bg-[#FDF2F4] transition"
                           >
-                            <span>Rincian</span>
+                            <span>Detail Pasar</span>
                             <ArrowRight size={12} />
                           </Link>
                         </td>

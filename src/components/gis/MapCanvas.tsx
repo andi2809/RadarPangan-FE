@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as maplibregl from 'maplibre-gl';
 import { UnifiedRegionTelemetry, SupplyRoute, PriceStatus } from '../../types/domain';
 import { MapTooltip, NonJabarInfo } from './MapTooltip';
-import { MapPin, Navigation, Plus, Minus, LocateFixed } from 'lucide-react';
+import { MapPin, Navigation, Plus, Minus, LocateFixed, ChevronDown, ChevronUp } from 'lucide-react';
 
 if (typeof window !== 'undefined' && typeof maplibregl.setWorkerUrl === 'function') {
   maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
@@ -78,6 +78,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   const [activeViewScope, setActiveViewScope] = useState<'jabar' | 'indonesia' | 'user'>(viewScope);
   const [internalGeoJson, setInternalGeoJson] = useState<GeoJSON.FeatureCollection | null>(geoJson);
+  const [isLegendExpanded, setIsLegendExpanded] = useState<boolean>(true);
 
   // Auto-load GeoJSON fallback if parent passes null
   useEffect(() => {
@@ -507,71 +508,95 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       )}
 
       {/* Zoom and Reset Controls (Vertical stack top-left) */}
-      <div className="absolute top-4 left-4 z-20 flex flex-col bg-white rounded-xl border border-[#E5E2DA] shadow-sm text-xs select-none overflow-hidden">
+      <div
+        className={`absolute left-4 z-20 flex flex-col bg-white rounded-xl border border-[#E5E2DA] shadow-md text-xs select-none overflow-hidden transition-all duration-200 ${
+          mode === 'full' ? 'top-20' : 'top-4'
+        }`}
+      >
         <button
           type="button"
           onClick={handleZoomIn}
-          className="p-2 text-[#292824] hover:bg-[#F5F3ED] border-b border-[#E5E2DA] transition-colors"
-          title="Perbesar Peta"
+          className="p-2 text-[#292824] hover:bg-[#F5F3ED] hover:text-[#67151D] border-b border-[#E5E2DA] transition-colors"
+          title="Perbesar Peta (Zoom In)"
         >
-          <Plus size={14} />
+          <Plus size={15} />
         </button>
         <button
           type="button"
           onClick={handleZoomOut}
-          className="p-2 text-[#292824] hover:bg-[#F5F3ED] border-b border-[#E5E2DA] transition-colors"
-          title="Perkecil Peta"
+          className="p-2 text-[#292824] hover:bg-[#F5F3ED] hover:text-[#67151D] border-b border-[#E5E2DA] transition-colors"
+          title="Perkecil Peta (Zoom Out)"
         >
-          <Minus size={14} />
+          <Minus size={15} />
         </button>
         <button
           type="button"
           onClick={handleFlyToJabar}
-          className="p-2 text-[#77746C] hover:text-[#292824] hover:bg-[#F5F3ED] transition-colors"
-          title="Reset View Jawa Barat"
+          className="p-2 text-[#77746C] hover:text-[#67151D] hover:bg-[#F5F3ED] transition-colors"
+          title="Fokus Ulang Jawa Barat (Reset View)"
         >
-          <LocateFixed size={14} />
+          <LocateFixed size={15} />
         </button>
       </div>
 
       {/* Legend Box with Region Counts (Bottom-Left) */}
-      <div className="absolute bottom-4 left-4 z-20 bg-white/95 border border-[#E5E2DA] rounded-2xl p-3.5 shadow-md text-xs select-none min-w-[210px]">
-        <div className="font-bold text-xs text-[#292824]">Kondisi Harga</div>
-        <div className="text-[11px] text-[#77746C] mb-2.5">(Deviasi terhadap Acuan)</div>
-
-        <div className="space-y-2 text-[11px] text-[#292824]">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[#729B82]" />
-              <span>Normal (&le; &plusmn;5%)</span>
-            </div>
-            <span className="text-[#77746C] font-mono text-[10px]">{statusCounts.normal} wilayah</span>
+      <div
+        className={`absolute left-4 z-20 bg-white/95 border border-[#E5E2DA] rounded-2xl p-3 shadow-md text-xs select-none min-w-[210px] backdrop-blur-sm transition-all duration-300 ${
+          mode === 'full' ? 'bottom-[244px]' : 'bottom-4'
+        }`}
+      >
+        <div
+          className="flex items-center justify-between gap-2 cursor-pointer select-none"
+          onClick={() => setIsLegendExpanded(!isLegendExpanded)}
+        >
+          <div>
+            <div className="font-bold text-xs text-[#292824]">Kondisi Harga</div>
+            <div className="text-[10px] text-[#77746C]">(Deviasi terhadap Acuan)</div>
           </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[#D6B45F]" />
-              <span>Perlu Perhatian (&plusmn;5% &ndash; +10%)</span>
-            </div>
-            <span className="text-[#77746C] font-mono text-[10px]">{statusCounts.warning} wilayah</span>
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[#B85C52]" />
-              <span>Tekanan Tinggi (&gt; +10%)</span>
-            </div>
-            <span className="text-[#77746C] font-mono text-[10px]">{statusCounts.high} wilayah</span>
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-sm bg-[#D5D5D0]" />
-              <span>Tidak Tersedia Data</span>
-            </div>
-            <span className="text-[#77746C] font-mono text-[10px]">{statusCounts.nodata} wilayah</span>
-          </div>
+          <button
+            type="button"
+            className="p-1 rounded-md text-[#77746C] hover:text-[#292824] hover:bg-[#F5F3ED] transition-colors"
+            title={isLegendExpanded ? 'Ciutkan Legenda' : 'Perluas Legenda'}
+          >
+            {isLegendExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </button>
         </div>
+
+        {isLegendExpanded && (
+          <div className="mt-2.5 pt-2 border-t border-[#E5E2DA] space-y-1.5 text-[11px] text-[#292824]">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-sm bg-[#729B82]" />
+                <span>Normal (&le; &plusmn;5%)</span>
+              </div>
+              <span className="text-[#77746C] font-mono text-[10px]">{statusCounts.normal} wilayah</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-sm bg-[#D6B45F]" />
+                <span>Perlu Perhatian (&plusmn;5% &ndash; +10%)</span>
+              </div>
+              <span className="text-[#77746C] font-mono text-[10px]">{statusCounts.warning} wilayah</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-sm bg-[#B85C52]" />
+                <span>Tekanan Tinggi (&gt; +10%)</span>
+              </div>
+              <span className="text-[#77746C] font-mono text-[10px]">{statusCounts.high} wilayah</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-sm bg-[#D5D5D0]" />
+                <span>Tidak Tersedia Data</span>
+              </div>
+              <span className="text-[#77746C] font-mono text-[10px]">{statusCounts.nodata} wilayah</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Map Tooltip */}
