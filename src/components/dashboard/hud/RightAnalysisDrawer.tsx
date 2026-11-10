@@ -230,8 +230,8 @@ export const RightAnalysisDrawer: React.FC<RightAnalysisDrawerProps> = ({
                     {consensus?.statusKuorum === 'tercapai' && consensus.hargaWargaRp ? (
                       `Rp ${consensus.hargaWargaRp.toLocaleString('id-ID')}/kg`
                     ) : (
-                      <span className="text-[11px] text-[#77746C] font-normal italic">
-                        Menunggu Kuorum
+                      <span className="text-[11px] text-[#854D0E] font-medium">
+                        Belum Diverifikasi
                       </span>
                     )}
                   </div>

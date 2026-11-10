@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { MarketRef, formatJakartaLongDate } from '@/lib/citizen-distribution';
 import { useCitizenReportDistribution } from '@/hooks/useCitizenReportDistribution';
 import { getMarketsForRegion, MarketSelect } from './MarketSelect';
@@ -9,13 +10,10 @@ import {
   DistributionLoadingState,
   DistributionErrorState,
   DistributionNoMarketState,
-  DistributionEmptyState,
   DistributionExpiredState,
   DistributionInvalidState,
-  QuorumProgress,
-  ValidationFacts,
 } from './DistributionStates';
-import { ConsensusComparison, DistributionSummary, GovernmentPrices } from './DistributionSummary';
+import { ConsensusComparison, GovernmentPrices } from './DistributionSummary';
 import { Commodity } from '@/types/domain';
 
 export interface CitizenReportPriceDistributionProps {
@@ -31,18 +29,18 @@ export interface CitizenReportPriceDistributionProps {
   embedded?: boolean;
 }
 
-export function CitizenReportPriceDistribution({
+export const CitizenReportPriceDistribution: React.FC<CitizenReportPriceDistributionProps> = ({
   regionId,
-  regionName,
+  regionName: _regionName,
   regionCentroid,
   commodity,
   selectedMarket: propMarket,
   onSelectMarket,
   bapanasPrice,
   className = '',
-  height = 100,
+  height = 90,
   embedded = false,
-}: CitizenReportPriceDistributionProps) {
+}) => {
   // Sinkronkan pasar dengan regionId aktif
   const availableMarkets = useMemo(() => getMarketsForRegion(regionId), [regionId]);
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
@@ -64,10 +62,8 @@ export function CitizenReportPriceDistribution({
   const { state, retry } = useCitizenReportDistribution({
     market: activeMarket,
     commodityId: commodity.id,
-    regionCentroid,
+    regionCentroid: regionCentroid || { lat: -6.2415, lng: 107.0016 },
   });
-
-  const [showValidation, setShowValidation] = useState(false);
 
   const todayLabel = useMemo(() => formatJakartaLongDate(new Date()), []);
   const unit = commodity.satuan || 'kg';
@@ -85,6 +81,8 @@ export function CitizenReportPriceDistribution({
   const containerClasses = embedded
     ? `flex flex-col justify-between select-none text-[#292824] h-full ${className}`
     : `bg-white/95 border border-[#E5E2DA] rounded-2xl p-4 shadow-xl backdrop-blur-sm flex flex-col justify-between select-none text-[#292824] ${className}`;
+
+  const marketAuditId = activeMarket?.id || 'pasar-baru-cikarang';
 
   return (
     <div className={containerClasses}>
@@ -110,7 +108,7 @@ export function CitizenReportPriceDistribution({
         </div>
 
         {/* 2. Body Berdasarkan State */}
-        <div className="min-h-[125px] flex flex-col justify-center">
+        <div className="min-h-[110px] flex flex-col justify-center">
           {state.kind === 'loading' && <DistributionLoadingState />}
 
           {state.kind === 'error' && (
@@ -119,7 +117,34 @@ export function CitizenReportPriceDistribution({
 
           {state.kind === 'no-market' && <DistributionNoMarketState />}
 
-          {state.kind === 'no-active-reports' && <DistributionEmptyState />}
+          {/* State: Belum Ada Laporan Hari Ini */}
+          {state.kind === 'no-active-reports' && (
+            <div className="space-y-2.5 py-1">
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="font-medium text-[#77746C]">Progres Kuorum Laporan</span>
+                  <span className="font-mono text-xs tabular-nums text-[#77746C]">
+                    0 / 10
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-[#EAE8E1] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#EAE8E1] w-0" />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-[#F5F3ED] border border-[#E5E2DA] space-y-1 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-[#77746C]">
+                  Konsensus Harga Warga
+                </div>
+                <div className="text-sm font-bold text-[#77746C]">
+                  Belum Diverifikasi
+                </div>
+                <p className="text-[11px] text-[#77746C] leading-snug">
+                  Belum ada laporan harga warga yang diterima hari ini pada pasar terpilih.
+                </p>
+              </div>
+            </div>
+          )}
 
           {state.kind === 'expired-only' && (
             <DistributionExpiredState breakdown={state.breakdown} />
@@ -129,47 +154,58 @@ export function CitizenReportPriceDistribution({
             <DistributionInvalidState breakdown={state.breakdown} />
           )}
 
+          {/* State: Laporan Masuk Tapi Belum Mencapai Kuorum (< 10) */}
           {state.kind === 'insufficient-quorum' && (
-            <div className="space-y-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="font-medium text-[#77746C]">Progres Kuorum Warga</span>
-                <QuorumProgress valid={state.breakdown.valid} />
+            <div className="space-y-2.5 py-1">
+              {/* Progres Kuorum */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="font-medium text-[#77746C]">Progres Kuorum Warga</span>
+                  <span className="font-mono text-xs font-bold tabular-nums text-[#854D0E]">
+                    {state.breakdown.valid} / 10
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-[#EAE8E1] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#D6B45F] rounded-full transition-all"
+                    style={{ width: `${Math.min(100, (state.breakdown.valid / 10) * 100)}%` }}
+                  />
+                </div>
               </div>
 
-              <div className="p-2 rounded-lg bg-[#D6B45F]/15 border border-[#D6B45F]/30 text-[11px] text-[#8F7020] leading-snug">
-                {state.awaitingBackendConfirmation
-                  ? 'Telah mencapai 10 laporan valid. Menunggu konfirmasi verifikasi konsensus resmi dari backend.'
-                  : `Belum mencapai kuorum. Dibutuhkan ${
-                      10 - state.breakdown.valid
-                    } laporan valid tambahan untuk membentuk konsensus harga warga.`}
+              {/* Status Box: Belum Diverifikasi */}
+              <div className="p-3 rounded-xl bg-[#FEF08A]/40 border border-[#FDE047] space-y-1.5 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-[#854D0E]">
+                  Konsensus Harga Warga
+                </div>
+                <div className="text-base font-bold text-[#854D0E] flex items-center justify-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#D6B45F]" />
+                  <span>Belum Diverifikasi</span>
+                </div>
+                <p className="text-[11px] text-[#706B62] leading-snug">
+                  Memerlukan {10 - state.breakdown.valid} laporan valid tambahan untuk membentuk konsensus harga yang sah.
+                </p>
               </div>
-
-              <PriceHistogram
-                prices={state.stats.prices}
-                median={state.stats.median}
-                unit={unit}
-                provisional={true}
-                height={height}
-              />
-
-              <DistributionSummary
-                stats={state.stats}
-                valid={state.breakdown.valid}
-                unit={unit}
-                provisional={true}
-              />
             </div>
           )}
 
+          {/* State: Kuorum Terpenuhi (>= 10) */}
           {state.kind === 'quorum-reached' && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#729B82]" />
-                  <span className="font-semibold text-[#39634B]">Konsensus Kuorum Terpenuhi</span>
+                  <span className="font-semibold text-[#39634B]">Konsensus Terverifikasi</span>
                 </div>
                 <span className="font-mono text-[11px] text-[#77746C]">
-                  {state.breakdown.valid} laporan valid
+                  {state.breakdown.valid} / 10 laporan valid
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-[#F5F3ED] border border-[#E5E2DA] flex items-baseline justify-between">
+                <span className="text-xs text-[#77746C]">Median Harga Warga</span>
+                <span className="text-base font-bold font-mono text-[#292824]">
+                  Rp {state.stats.median.toLocaleString('id-ID')}/{unit}
                 </span>
               </div>
 
@@ -179,13 +215,6 @@ export function CitizenReportPriceDistribution({
                 unit={unit}
                 provisional={false}
                 height={height}
-              />
-
-              <DistributionSummary
-                stats={state.stats}
-                valid={state.breakdown.valid}
-                unit={unit}
-                provisional={false}
               />
 
               <ConsensusComparison
@@ -198,27 +227,21 @@ export function CitizenReportPriceDistribution({
         </div>
       </div>
 
-      {/* 3. Footer */}
-      <div className="mt-2 pt-2 border-t border-[#E5E2DA] flex items-center justify-between text-[10px] text-[#77746C]">
-        <span className="truncate">Sumber: Laporan Warga Hari Ini</span>
+      {/* 3. Footer: Sumber dan Akses ke Ruang Audit Pasar */}
+      <div className="mt-2.5 pt-2 border-t border-[#E5E2DA] flex items-center justify-between text-[11px]">
+        <span className="text-[10px] text-[#77746C] truncate">
+          Sumber: Laporan Warga
+        </span>
 
-        {'breakdown' in state && (
-          <button
-            type="button"
-            onClick={() => setShowValidation(!showValidation)}
-            className="hover:text-[#791D2A] underline transition-colors shrink-0 font-medium ml-2"
-          >
-            {showValidation ? 'Tutup Rincian' : 'Rincian Validasi'}
-          </button>
-        )}
+        <Link
+          href={`/dashboard/laporan-warga/${marketAuditId}`}
+          className="inline-flex items-center gap-1 font-semibold text-xs text-[#791D2A] hover:underline transition-colors shrink-0"
+          title="Buka ruang audit untuk memeriksa laporan perorangan dan validasi MAD"
+        >
+          <span>Ruang Audit Pasar</span>
+          <span>&rarr;</span>
+        </Link>
       </div>
-
-      {/* Accordion Rincian Validasi Laporan bila dibuka */}
-      {showValidation && 'breakdown' in state && (
-        <div className="mt-2 pt-2 border-t border-[#E5E2DA] bg-[#F5F3ED]/60 p-2.5 rounded-lg">
-          <ValidationFacts breakdown={state.breakdown} />
-        </div>
-      )}
     </div>
   );
-}
+};
