@@ -1,3 +1,5 @@
+import { OFFICIAL_MARKETS_BY_REGION, type OfficialMarket, type RegionMarketDirectory } from './officialMarkets';
+
 export interface MarketConsensusItem {
   id: string;
   regionId: string;

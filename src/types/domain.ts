@@ -89,6 +89,10 @@ export interface Commodity {
   satuan: 'kg' | 'liter';
   jenisAcuan: AcuanType;
   hargaAcuanRp: number;
+  acuanMinRp?: number;
+  acuanMaxRp?: number;
+  hargaAcuanProdusenRp?: string;
+  dasarHukum?: string;
   deskripsi: string;
   sumberDefault?: DataSource;
   jenisHarga?: PriceType;

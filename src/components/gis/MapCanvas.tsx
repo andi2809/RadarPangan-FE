@@ -258,7 +258,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   // Center camera when selectedRegionId changes
   useEffect(() => {
-    if (!mapRef.current || !selectedRegionId || !internalGeoJson) return;
+    if (!mapRef.current || !internalGeoJson) return;
+    if (selectedRegionId === 'all_jabar' || !selectedRegionId) {
+      handleFlyToJabar();
+      return;
+    }
     const targetFeature = internalGeoJson.features.find((f) => f.properties?.id === selectedRegionId);
     const centroid = targetFeature?.properties?.centroid;
     if (centroid && typeof centroid.lng === 'number' && typeof centroid.lat === 'number') {
@@ -269,7 +273,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         essential: true,
       });
     }
-  }, [selectedRegionId, internalGeoJson, mode]);
+  }, [selectedRegionId, internalGeoJson, mode, handleFlyToJabar]);
 
   // Update GeoJSON and Choropleth Layers
   useEffect(() => {
@@ -463,38 +467,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
       {/* MapLibre DOM Node */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Scope Controls (Top-Left) */}
-      <div className="absolute top-20 left-4 z-20 flex items-center gap-1 bg-white p-1 rounded-xl border border-[#E5E2DA] shadow-sm text-xs font-sans select-none">
-        <button
-          type="button"
-          onClick={handleFlyToJabar}
-          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium ${
-            activeViewScope === 'jabar'
-              ? 'bg-[#791D2A] text-white'
-              : 'text-[#292824] hover:bg-[#F5F3ED]'
-          }`}
-          title="Fokus 27 Kab/Kota Jawa Barat"
-        >
-          <MapPin size={13} />
-          <span>Jawa Barat</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleFlyToIndonesia}
-          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium ${
-            activeViewScope === 'indonesia'
-              ? 'bg-[#791D2A] text-white'
-              : 'text-[#292824] hover:bg-[#F5F3ED]'
-          }`}
-          title="Lihat Peta Nasional"
-        >
-          <span>Nusantara</span>
-        </button>
-      </div>
-
-      {/* Zoom and Reset Controls (Vertical stack below scope) */}
-      <div className="absolute top-32 left-4 z-20 flex flex-col bg-white rounded-xl border border-[#E5E2DA] shadow-sm text-xs select-none overflow-hidden">
+      {/* Zoom and Reset Controls (Vertical stack top-left) */}
+      <div className="absolute top-4 left-4 z-20 flex flex-col bg-white rounded-xl border border-[#E5E2DA] shadow-sm text-xs select-none overflow-hidden">
         <button
           type="button"
           onClick={handleZoomIn}
