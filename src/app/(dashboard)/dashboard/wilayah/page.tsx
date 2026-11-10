@@ -213,9 +213,10 @@ export default function WilayahDanRiwayatPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 self-start sm:self-auto">
-          <span className="text-xs text-[#706B62]">
-            Data diperbarui: <strong className="text-[#24231F]">{LAST_UPDATED_TEXT}</strong>
-          </span>
+          <div className="text-xs text-[#706B62] sm:text-right">
+            <span className="block text-[11px] text-[#706B62]">Data diperbarui:</span>
+            <strong className="block font-bold text-[#24231F]">{LAST_UPDATED_TEXT}</strong>
+          </div>
           <button
             type="button"
             onClick={() => setIsReportModalOpen(true)}
