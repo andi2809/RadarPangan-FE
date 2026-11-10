@@ -1,20 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import {
-  Map,
-  Wheat,
-  AlertTriangle,
-  ShieldCheck,
-  Upload,
-  RotateCcw,
-  Sparkles,
-  FileSpreadsheet,
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { MapPin } from 'lucide-react';
 import type { FeatureCollection } from 'geojson';
 import { GISLayout } from '@/components/gis/layout/GISLayout';
 import { GISPageHeader } from '@/components/gis/overview/GISPageHeader';
-import { GISStatsSection, type StatItem } from '@/components/gis/overview/GISStatCard';
 import { GISMapWorkspace } from '@/components/gis/map/GISMapWorkspace';
 import { GISMapCanvas } from '@/components/gis/map/GISMapCanvas';
 import { RegionInsightPanel } from '@/components/gis/analysis/RegionInsightPanel';
@@ -31,31 +22,23 @@ import {
   getAllRegions,
   getAllCommodities,
 } from '@/utils/geo-loader';
-import {
-  calculateH7Forecast,
-  SEASONAL_MULTIPLIERS,
-  type SeasonalScenario,
-} from '@/lib/engines/forecasting';
+import { calculateH7Forecast } from '@/lib/engines/forecasting';
 import {
   calculateCommodityUmkBurden,
   AVERAGE_JABAR_UMK_RP,
 } from '@/lib/engines/affordability';
-import { findOptimalSupplyRoutes } from '@/lib/engines/supply-matcher';
 import {
   loadCitizenReports,
-  loadCsvOverrides,
-  saveCsvOverrides,
-  clearCsvOverrides,
-  resetCitizenReports,
-  CIREBON_60D_DEMO_OVERRIDE,
   type ApprovedCitizenReport,
-  type CustomRegionOverride,
 } from '@/utils/dual-source-store';
-import { UnifiedRegionTelemetry, Commodity, PriceStatus, SupplyStatus } from '@/types/domain';
+import { UnifiedRegionTelemetry, Commodity, PriceStatus } from '@/types/domain';
 
 const numberFormat = new Intl.NumberFormat('id-ID');
 
-export default function DashboardPage() {
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const urlRegion = searchParams.get('region');
+
   const commodities = useMemo(() => getAllCommodities() as Commodity[], []);
   const allRegions = useMemo(() => getAllRegions(), []);
   const avgJabarUmkRp = useMemo(() => {
@@ -65,18 +48,22 @@ export default function DashboardPage() {
     );
   }, [allRegions]);
 
+  const totalJabarPopulation = useMemo(() => {
+    return allRegions.reduce((sum, reg) => sum + (reg.populasi || 0), 0);
+  }, [allRegions]);
+
   const [commodity, setCommodity] = useState<string>('cabai_rawit_merah');
   const [period, setPeriod] = useState<'today' | 'forecast'>('today');
-  const [seasonalScenario, setSeasonalScenario] = useState<SeasonalScenario>('normal');
-  const [selectedRegionId, setSelectedRegionId] = useState<string>('32.16');
+  const [selectedRegionId, setSelectedRegionId] = useState<string>(urlRegion || 'all_jabar');
   const [viewScope, setViewScope] = useState<'jabar' | 'indonesia'>('jabar');
   const [geoJson, setGeoJson] = useState<FeatureCollection | null>(null);
-
-  // Dual-source citizen reports & CSV overrides state
   const [citizenReports, setCitizenReports] = useState<ApprovedCitizenReport[]>([]);
-  const [csvOverrides, setCsvOverrides] = useState<Record<string, CustomRegionOverride>>({});
-  const [uploadBanner, setUploadBanner] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (urlRegion) {
+      setSelectedRegionId(urlRegion);
+    }
+  }, [urlRegion]);
 
   useEffect(() => {
     loadIndonesiaGeoJson()
@@ -87,7 +74,6 @@ export default function DashboardPage() {
   useEffect(() => {
     const syncStore = () => {
       setCitizenReports(loadCitizenReports());
-      setCsvOverrides(loadCsvOverrides());
     };
     syncStore();
     window.addEventListener('radar-pangan-storage-update', syncStore);
@@ -103,7 +89,7 @@ export default function DashboardPage() {
     [commodity]
   );
 
-  // Recalculate all 27 Jabar regions dynamically with Deterministic Multi-Window Engine + Seasonal/Stock Multipliers + CSV Overrides
+  // Recalculate telemetry for all 27 Jabar regions with baseline model
   const allTelemetry = useMemo(() => {
     const result: Record<string, UnifiedRegionTelemetry> = {};
 
@@ -111,28 +97,9 @@ export default function DashboardPage() {
       const baseTelem = rawTelemetry[reg.id];
       if (!baseTelem) return;
 
-      const overrideKey = `${reg.id}:${commodity}`;
-      const override = csvOverrides[overrideKey];
-
-      let history = baseTelem.history14d.map((pt) => ({ ...pt }));
-      let hargaAcuanRp = baseTelem.currentPrice.hargaAcuanRp;
-      let supplyStatus: SupplyStatus = baseTelem.supply.statusNeraca;
-
-      if (override && history.length >= 8) {
-        hargaAcuanRp = override.hargaAcuanRp ?? hargaAcuanRp;
-        supplyStatus = override.supplyStatus ?? supplyStatus;
-        const lastIdx = history.length - 1;
-        const idxMinus7 = Math.max(0, lastIdx - 7);
-        history = history.map((item, idx) => {
-          if (idx === lastIdx) return { ...item, hargaRp: override.pt };
-          if (idx === idxMinus7) return { ...item, hargaRp: override.ptMinus7 };
-          const ratio = idx / Math.max(1, lastIdx);
-          const interp = Math.round(
-            (override.ptMinus7 * 0.92 + (override.pt - override.ptMinus7 * 0.92) * ratio) / 100
-          ) * 100;
-          return { ...item, hargaRp: interp };
-        });
-      }
+      const history = baseTelem.history14d.map((pt) => ({ ...pt }));
+      const hargaAcuanRp = baseTelem.currentPrice.hargaAcuanRp;
+      const supplyStatus = baseTelem.supply.statusNeraca;
 
       const pt = history[history.length - 1]?.hargaRp ?? baseTelem.currentPrice.hargaAktualRp;
       const currentSelisihRp = pt - hargaAcuanRp;
@@ -145,11 +112,8 @@ export default function DashboardPage() {
 
       try {
         const forecastOut = calculateH7Forecast(history, hargaAcuanRp, commodity, {
-          seasonalScenario,
+          seasonalScenario: 'normal',
           supplyStatus,
-          overrideMa30: override?.ma30,
-          overrideMean60: override?.mean60,
-          overrideStdDev60: override?.stdDev60,
         });
 
         result[reg.id] = {
@@ -170,14 +134,6 @@ export default function DashboardPage() {
             ...forecastOut.finalH7,
             regionId: reg.id,
           },
-          supply: {
-            ...baseTelem.supply,
-            statusNeraca: supplyStatus,
-            surplusDefisitTon:
-              supplyStatus === 'defisit'
-                ? -Math.abs(baseTelem.supply.surplusDefisitTon || 1200)
-                : baseTelem.supply.surplusDefisitTon,
-          },
         };
       } catch {
         result[reg.id] = { ...baseTelem, region: reg };
@@ -185,26 +141,130 @@ export default function DashboardPage() {
     });
 
     return result;
-  }, [allRegions, rawTelemetry, commodity, seasonalScenario, csvOverrides]);
+  }, [allRegions, rawTelemetry, commodity]);
 
-  const activeRegionTelemetry = allTelemetry[selectedRegionId];
-  const hasData = Boolean(activeRegionTelemetry?.currentPrice);
+  const selectedCommodityObj = useMemo(
+    () => commodities.find((c) => c.id === commodity) || commodities[0],
+    [commodities, commodity]
+  );
 
-  const activeRegionName =
-    activeRegionTelemetry?.region?.name ||
-    (selectedRegionId === '32.16' ? 'Kab. Bekasi' : 'Wilayah Pantauan');
+  // Check if viewing aggregated Jawa Barat or a specific region
+  const isAllJabar = selectedRegionId === 'all_jabar' || !selectedRegionId;
+  const activeRegionTelemetry = !isAllJabar ? allTelemetry[selectedRegionId] : null;
 
-  const currentPriceRp = activeRegionTelemetry?.currentPrice?.hargaAktualRp ?? 0;
-  const forecastPriceRp = activeRegionTelemetry?.predictionH7?.hargaPrediksiH7Rp ?? 0;
-  const changePercent =
-    activeRegionTelemetry?.predictionH7?.selisihPersen ??
-    activeRegionTelemetry?.currentPrice?.selisihPersen ??
-    0;
+  // Determine if valid data exists for the selected view
+  const hasData = isAllJabar
+    ? Object.keys(allTelemetry).length > 0
+    : Boolean(activeRegionTelemetry?.currentPrice);
 
-  const rawStatus: PriceStatus | undefined =
-    period === 'today'
-      ? activeRegionTelemetry?.currentPrice?.status
-      : activeRegionTelemetry?.predictionH7?.status;
+  const activeRegionName = isAllJabar
+    ? 'Jawa Barat (Agregat 27 Wilayah)'
+    : activeRegionTelemetry?.region?.name || 'Wilayah Pantauan';
+
+  // Aggregate telemetry calculation across all Jabar regions
+  const telemetryList = useMemo(() => Object.values(allTelemetry), [allTelemetry]);
+
+  const jabarAggregates = useMemo(() => {
+    if (!telemetryList.length) {
+      return {
+        avgCurrentPriceRp: 0,
+        avgForecastPriceRp: 0,
+        avgChangePercent: 0,
+        effectiveHistory: [],
+        forecastPoints: [],
+        status: 'aman' as PriceStatus,
+      };
+    }
+
+    const totalCurrent = telemetryList.reduce(
+      (sum, t) => sum + (t.currentPrice?.hargaAktualRp || 0),
+      0
+    );
+    const avgCurrentPriceRp = Math.round(totalCurrent / telemetryList.length);
+
+    const totalForecast = telemetryList.reduce(
+      (sum, t) => sum + (t.predictionH7?.hargaPrediksiH7Rp || 0),
+      0
+    );
+    const avgForecastPriceRp = Math.round(totalForecast / telemetryList.length);
+
+    const acuan = selectedCommodityObj?.hargaAcuanRp || 45000;
+    const avgChangePercent = Number(
+      (((avgCurrentPriceRp - acuan) / Math.max(1, acuan)) * 100).toFixed(1)
+    );
+
+    // Calculate aggregated daily history
+    const sampleHistory = telemetryList[0]?.history14d || [];
+    const effectiveHistory = sampleHistory.map((pt, idx) => {
+      const sumDay = telemetryList.reduce(
+        (sum, t) => sum + (t.history14d[idx]?.hargaRp || pt.hargaRp),
+        0
+      );
+      return {
+        date: pt.date,
+        hargaRp: Math.round(sumDay / telemetryList.length),
+      };
+    });
+
+    // Run baseline forecast for the aggregated Jabar series
+    let forecastPoints: {
+      date: string;
+      hargaPrediksiRp: number;
+      confidenceLowerRp: number;
+      confidenceUpperRp: number;
+    }[] = [];
+    try {
+      const fcBundle = calculateH7Forecast(effectiveHistory, acuan, commodity, {
+        seasonalScenario: 'normal',
+        supplyStatus: 'seimbang',
+      });
+      forecastPoints = fcBundle.points;
+    } catch {
+      forecastPoints = [];
+    }
+
+    // Determine overall Jabar status
+    const criticalCount = telemetryList.filter(
+      (t) => (period === 'today' ? t.currentPrice?.status : t.predictionH7?.status) === 'kritis'
+    ).length;
+    const warningCount = telemetryList.filter(
+      (t) => (period === 'today' ? t.currentPrice?.status : t.predictionH7?.status) === 'waspada'
+    ).length;
+
+    let status: PriceStatus = 'aman';
+    if (criticalCount >= 5) status = 'kritis';
+    else if (warningCount >= 5) status = 'waspada';
+
+    return {
+      avgCurrentPriceRp,
+      avgForecastPriceRp,
+      avgChangePercent,
+      effectiveHistory,
+      forecastPoints,
+      status,
+    };
+  }, [telemetryList, selectedCommodityObj, commodity, period]);
+
+  // Active prices, forecasts, and status depending on scope
+  const currentPriceRp = isAllJabar
+    ? jabarAggregates.avgCurrentPriceRp
+    : activeRegionTelemetry?.currentPrice?.hargaAktualRp ?? 0;
+
+  const forecastPriceRp = isAllJabar
+    ? jabarAggregates.avgForecastPriceRp
+    : activeRegionTelemetry?.predictionH7?.hargaPrediksiH7Rp ?? 0;
+
+  const changePercent = isAllJabar
+    ? jabarAggregates.avgChangePercent
+    : activeRegionTelemetry?.predictionH7?.selisihPersen ??
+      activeRegionTelemetry?.currentPrice?.selisihPersen ??
+      0;
+
+  const rawStatus: PriceStatus | undefined = isAllJabar
+    ? jabarAggregates.status
+    : period === 'today'
+    ? activeRegionTelemetry?.currentPrice?.status
+    : activeRegionTelemetry?.predictionH7?.status;
 
   const activeStatus: 'terkendali' | 'waspada' | 'kritis' | 'tanpa_data' =
     !hasData || rawStatus === 'tidak_ada_data'
@@ -222,55 +282,70 @@ export default function DashboardPage() {
       ? 'WASPADA'
       : 'TERKENDALI';
 
-  const selectedCommodityObj = useMemo(
-    () => commodities.find((c) => c.id === commodity) || commodities[1] || commodities[0],
-    [commodities, commodity]
-  );
+  const effectiveHargaAcuanRp =
+    activeRegionTelemetry?.currentPrice?.hargaAcuanRp ??
+    selectedCommodityObj?.hargaAcuanRp ??
+    45000;
 
-  // Forecast & Multi-Window Analysis for Active Region
+  const effectiveHistory = isAllJabar
+    ? jabarAggregates.effectiveHistory
+    : activeRegionTelemetry?.history14d ?? [];
+
+  // Forecast bundle for specific region or null if Jabar aggregate
   const activeForecastBundle = useMemo(() => {
+    if (isAllJabar) {
+      return {
+        points: jabarAggregates.forecastPoints,
+        multiWindow: null,
+      };
+    }
     if (!activeRegionTelemetry) return null;
-    const override = csvOverrides[`${selectedRegionId}:${commodity}`];
     try {
       return calculateH7Forecast(
         activeRegionTelemetry.history14d,
         activeRegionTelemetry.currentPrice.hargaAcuanRp,
         commodity,
         {
-          seasonalScenario,
+          seasonalScenario: 'normal',
           supplyStatus: activeRegionTelemetry.supply.statusNeraca,
-          overrideMa30: override?.ma30,
-          overrideMean60: override?.mean60,
-          overrideStdDev60: override?.stdDev60,
         }
       );
     } catch {
       return null;
     }
-  }, [activeRegionTelemetry, selectedRegionId, commodity, seasonalScenario, csvOverrides]);
+  }, [isAllJabar, jabarAggregates.forecastPoints, activeRegionTelemetry, commodity]);
 
-  // UMK Burden & Purchasing Power Pressure Score (TECHNICAL_PROJECT_CONTEXT §4.C)
+  // UMK Burden Calculation
+  const effectiveUmkRp = isAllJabar
+    ? avgJabarUmkRp
+    : activeRegionTelemetry?.region?.umk2026 ?? avgJabarUmkRp;
+
+  const effectivePopulation = isAllJabar
+    ? `${numberFormat.format(totalJabarPopulation)} jiwa`
+    : activeRegionTelemetry?.region?.populasi
+    ? `${numberFormat.format(activeRegionTelemetry.region.populasi)} jiwa`
+    : '—';
+
   const activeCommodityUmkBurden = useMemo(() => {
-    if (!activeRegionTelemetry || !activeForecastBundle) return null;
+    if (!hasData) return null;
+    const targetPrice = forecastPriceRp || currentPriceRp;
     return calculateCommodityUmkBurden(
-      activeRegionTelemetry.region.umk2026,
-      activeForecastBundle.multiWindow.calibratedH7Rp,
-      activeForecastBundle.multiWindow.kenaikanH7Pct,
+      effectiveUmkRp,
+      targetPrice,
+      changePercent,
       commodity,
       avgJabarUmkRp
     );
-  }, [activeRegionTelemetry, activeForecastBundle, commodity, avgJabarUmkRp]);
+  }, [hasData, forecastPriceRp, currentPriceRp, changePercent, commodity, effectiveUmkRp, avgJabarUmkRp]);
 
-  // Dual-Source Citizen Reports for Active Region.
-  // Semua laporan yang sudah di-ACC pada hari/wilayah/komoditas yang sama
-  // digabung dan ditampilkan sebagai nilai tengah (median) terbaru.
-  const activeCitizenReports = useMemo(
-    () =>
-      citizenReports.filter(
-        (r) => r.regionId === selectedRegionId && r.commodityId === commodity
-      ),
-    [citizenReports, selectedRegionId, commodity]
-  );
+  // Dual-source Citizen Reports for active selection
+  const activeCitizenReports = useMemo(() => {
+    return citizenReports.filter((r) => {
+      const matchCommodity = r.commodityId === commodity;
+      if (isAllJabar) return matchCommodity;
+      return matchCommodity && r.regionId === selectedRegionId;
+    });
+  }, [citizenReports, commodity, isAllJabar, selectedRegionId]);
 
   const activeCitizenReport = useMemo<ApprovedCitizenReport | null>(() => {
     const approved = activeCitizenReports.filter((r) => r.statusApproval === 'approved');
@@ -285,6 +360,7 @@ export default function DashboardPage() {
       return {
         ...latest,
         id: approved.length > 1 ? `MERGED-${latest.regionId}-${latest.commodityId}` : latest.id,
+        namaPasar: isAllJabar ? 'Konsensus Pasar Jawa Barat' : latest.namaPasar,
         hargaWargaRp: Math.round(median),
         jumlahLaporan: approved.reduce((sum, r) => sum + r.jumlahLaporan, 0),
       };
@@ -294,289 +370,71 @@ export default function DashboardPage() {
       activeCitizenReports[0] ||
       null
     );
-  }, [activeCitizenReports]);
+  }, [activeCitizenReports, isAllJabar]);
 
-  // Supply Matchmaker Routes for Active Region (drawn on GIS Map!)
-  const activeSupplyRoutes = useMemo(() => {
-    if (!activeRegionTelemetry) return [];
-    const isNeedSupply =
-      activeStatus === 'kritis' ||
-      activeStatus === 'waspada' ||
-      activeRegionTelemetry.supply.statusNeraca === 'defisit';
-    if (!isNeedSupply) return [];
-    const defisitTon = Math.max(
-      120,
-      Math.abs(activeRegionTelemetry.supply.surplusDefisitTon || 250)
-    );
-    return findOptimalSupplyRoutes(
-      activeRegionTelemetry.region,
-      defisitTon,
-      allRegions,
-      allTelemetry,
-      commodity
-    );
-  }, [activeRegionTelemetry, activeStatus, allRegions, allTelemetry, commodity]);
-
-  const stats = useMemo<StatItem[]>(() => {
-    const telemetryList = Object.values(allTelemetry);
-    const statusOf = (telem: UnifiedRegionTelemetry) =>
-      period === 'today' ? telem.currentPrice.status : telem.predictionH7.status;
-
-    const highRisk = telemetryList.filter((telem) => statusOf(telem) === 'kritis').length;
-    const surplus = telemetryList.filter(
-      (telem) => telem.supply.statusNeraca === 'surplus' || statusOf(telem) === 'turun'
-    ).length;
-
-    return [
-      {
-        label: 'Cakupan Wilayah MVP',
-        value: String(allRegions.length),
-        description: 'Kab/Kota Jawa Barat',
-        icon: Map,
-      },
-      {
-        label: 'Komoditas Strategis',
-        value: '5 Inti',
-        description: `${commodities.length} varian terpantau`,
-        icon: Wheat,
-      },
-      {
-        label: 'Wilayah Kritis',
-        value: String(highRisk),
-        description:
-          period === 'today'
-            ? 'Status kritis hari ini'
-            : `Proyeksi H+7 (${SEASONAL_MULTIPLIERS[seasonalScenario].shortLabel})`,
-        icon: AlertTriangle,
-        tone: 'warning',
-      },
-      {
-        label: 'Sentra Surplus',
-        value: String(surplus),
-        description: 'Siap memasok daerah defisit',
-        icon: ShieldCheck,
-        tone: 'success',
-      },
-    ];
-  }, [allRegions.length, allTelemetry, commodities.length, period, seasonalScenario]);
-
-  const commodityRows = useMemo<CommodityPriceRow[]>(
-    () =>
-      commodities.map((item) => {
-        const telemetryMap = getTelemetry(item.id) as Record<string, UnifiedRegionTelemetry>;
-        const telem =
-          item.id === commodity
-            ? allTelemetry[selectedRegionId]
-            : telemetryMap[selectedRegionId];
+  // Commodity price list for bottom table
+  const commodityRows = useMemo<CommodityPriceRow[]>(() => {
+    return commodities.map((item) => {
+      if (isAllJabar) {
+        const itemTelemMap = getTelemetry(item.id) as Record<string, UnifiedRegionTelemetry>;
+        const list = Object.values(itemTelemMap || {});
+        if (!list.length) {
+          return {
+            name: item.name,
+            unit: item.satuan,
+            currentPriceRp: null,
+            forecastPriceRp: null,
+            changePct: null,
+            status: 'tidak_ada_data',
+          };
+        }
+        const avgCurr = Math.round(
+          list.reduce((sum, t) => sum + (t.currentPrice?.hargaAktualRp || 0), 0) / list.length
+        );
+        const avgFc = Math.round(
+          list.reduce((sum, t) => sum + (t.predictionH7?.hargaPrediksiH7Rp || 0), 0) / list.length
+        );
+        const diff = Number((((avgCurr - item.hargaAcuanRp) / item.hargaAcuanRp) * 100).toFixed(1));
         return {
           name: item.name,
           unit: item.satuan,
-          currentPriceRp: telem?.currentPrice?.hargaAktualRp ?? null,
-          forecastPriceRp: telem?.predictionH7?.hargaPrediksiH7Rp ?? null,
-          changePct: telem?.predictionH7?.selisihPersen ?? null,
-          status: telem?.currentPrice?.status ?? 'tidak_ada_data',
+          currentPriceRp: avgCurr,
+          forecastPriceRp: avgFc,
+          changePct: diff,
+          status: diff > 10 ? 'kritis' : diff > 5 ? 'waspada' : 'aman',
         };
-      }),
-    [commodities, commodity, allTelemetry, selectedRegionId]
-  );
+      }
+
+      const telemetryMap = getTelemetry(item.id) as Record<string, UnifiedRegionTelemetry>;
+      const telem =
+        item.id === commodity
+          ? allTelemetry[selectedRegionId]
+          : telemetryMap?.[selectedRegionId];
+
+      return {
+        name: item.name,
+        unit: item.satuan,
+        currentPriceRp: telem?.currentPrice?.hargaAktualRp ?? null,
+        forecastPriceRp: telem?.predictionH7?.hargaPrediksiH7Rp ?? null,
+        changePct: telem?.predictionH7?.selisihPersen ?? null,
+        status: telem?.currentPrice?.status ?? 'tidak_ada_data',
+      };
+    });
+  }, [commodities, isAllJabar, commodity, allTelemetry, selectedRegionId]);
 
   const affordability = activeRegionTelemetry?.affordability;
 
+  // Map-first selection callback: clicking selected region again resets to All Jabar
   const handleSelectRegion = useCallback((regionId: string) => {
-    setSelectedRegionId(regionId);
+    setSelectedRegionId((prev) => (prev === regionId ? 'all_jabar' : regionId));
   }, []);
-
-  // Load 60-Day Concrete Case Study (Kab. Cirebon - Cabai Rawit Merah)
-  const handleLoadCirebonCaseStudy = () => {
-    const nextOverrides = {
-      ...csvOverrides,
-      '32.09:cabai_rawit_merah': CIREBON_60D_DEMO_OVERRIDE,
-    };
-    setCsvOverrides(nextOverrides);
-    saveCsvOverrides(nextOverrides);
-    setCommodity('cabai_rawit_merah');
-    setSelectedRegionId('32.09');
-    setSeasonalScenario('lebaran');
-    setPeriod('forecast');
-    setUploadBanner(
-      'Kasus Uji 60 Hari Kab. Cirebon dimuat: P_60=Rp78.000, P_53=Rp68.000, MA_30=Rp65.000, μ_60=Rp58.000, σ_60=Rp7.500, H-7 Lebaran (1,15x) & Defisit (1,10x) → Proyeksi H+7 = Rp113.200/kg.'
-    );
-  };
-
-  // Parse Uploaded CSV File
-  const handleCsvFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = String(reader.result || '').trim();
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      if (lines.length < 2) return;
-
-      const nextOverrides: Record<string, CustomRegionOverride> = { ...csvOverrides };
-      let importedCount = 0;
-      let firstRegionId: string | null = null;
-      let firstCommodityId: string | null = null;
-
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map((c) => c.trim());
-        if (cols.length < 4) continue;
-        const [regId, commId, ptStr, pt7Str, ma30Str, mean60Str, std60Str, stokStr, hapStr] = cols;
-        const ptVal = Number(ptStr);
-        const pt7Val = Number(pt7Str);
-        if (!regId || !commId || Number.isNaN(ptVal) || Number.isNaN(pt7Val)) continue;
-
-        const key = `${regId}:${commId}`;
-        nextOverrides[key] = {
-          regionId: regId,
-          commodityId: commId,
-          pt: ptVal,
-          ptMinus7: pt7Val,
-          ma30: ma30Str ? Number(ma30Str) : undefined,
-          mean60: mean60Str ? Number(mean60Str) : undefined,
-          stdDev60: std60Str ? Number(std60Str) : undefined,
-          supplyStatus:
-            stokStr === 'defisit' || stokStr === 'surplus' || stokStr === 'seimbang'
-              ? stokStr
-              : 'defisit',
-          hargaAcuanRp: hapStr ? Number(hapStr) : undefined,
-          labelDataset: file.name,
-        };
-        importedCount++;
-        if (!firstRegionId) {
-          firstRegionId = regId;
-          firstCommodityId = commId;
-        }
-      }
-
-      if (importedCount > 0) {
-        setCsvOverrides(nextOverrides);
-        saveCsvOverrides(nextOverrides);
-        if (firstRegionId) setSelectedRegionId(firstRegionId);
-        if (firstCommodityId) setCommodity(firstCommodityId);
-        setPeriod('forecast');
-        setUploadBanner(
-          `Berhasil mengunggah ${importedCount} baris data uji dari "${file.name}". Rumus deterministik H+7 telah dihitung ulang.`
-        );
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  };
-
-  const handleResetDefaultData = () => {
-    clearCsvOverrides();
-    resetCitizenReports();
-    setCsvOverrides({});
-    setSeasonalScenario('normal');
-    setPeriod('today');
-    setSelectedRegionId('32.16');
-    setUploadBanner(null);
-  };
 
   return (
     <GISLayout>
       {/* Header Judul Halaman */}
       <GISPageHeader />
 
-      {/* BLOK 5: PANEL UTILITAS ADMIN & TESTING (Upload CSV, Reset Data, Toggle Musiman) */}
-      <section className="rounded-xl border border-[#DED8CD] bg-[#FFFDF7] p-4 shadow-sm">
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#67151D]">
-              Blok 5 · Panel Utilitas Admin &amp; Pengujian Rumus Deterministik
-            </span>
-            <h2 className="mt-0.5 text-sm font-extrabold text-[#24231F]">
-              Simulasi Musiman (M_musim) &amp; Upload Dataset CSV Uji
-            </h2>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* 1. Toggle Skenario Musiman (M_musim) */}
-            <div className="flex items-center rounded-lg border border-[#DED8CD] bg-[#F8F4E9] p-1 text-xs">
-              {(Object.keys(SEASONAL_MULTIPLIERS) as SeasonalScenario[]).map((key) => {
-                const item = SEASONAL_MULTIPLIERS[key];
-                const isActive = seasonalScenario === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setSeasonalScenario(key);
-                      if (key !== 'normal') setPeriod('forecast');
-                    }}
-                    className={`rounded-md px-2.5 py-1.5 text-[11px] font-bold transition ${
-                      isActive
-                        ? 'bg-[#67151D] text-white shadow-sm'
-                        : 'text-[#625E56] hover:bg-[#F0EBDE]'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 2. Tombol Uji Kasus 60H Cirebon & Upload CSV */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleCsvFileUpload}
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={handleLoadCirebonCaseStudy}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#67151D]/30 bg-[#F4E8E9] px-3 py-2 text-xs font-bold text-[#67151D] transition hover:bg-[#EBD5D7]"
-              title="Muat skenario perhitungan konkret 60 hari data Kab. Cirebon sesuai dokumen teknis"
-            >
-              <Sparkles size={14} />
-              <span>Uji Kasus 60H Cirebon</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#DED8CD] bg-white px-3 py-2 text-xs font-bold text-[#24231F] transition hover:bg-[#F0EBDE]"
-            >
-              <Upload size={14} className="text-[#67151D]" />
-              <span>Upload CSV</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleResetDefaultData}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#DED8CD] bg-white px-3 py-2 text-xs font-bold text-[#706B62] transition hover:border-[#67151D] hover:text-[#67151D]"
-            >
-              <RotateCcw size={13} />
-              <span>Reset Data</span>
-            </button>
-          </div>
-        </div>
-
-        {uploadBanner && (
-          <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-[#287653]/30 bg-[#E3F0E7] px-3 py-2 text-xs text-[#1B5B3F]">
-            <div className="flex items-center gap-2 font-medium">
-              <FileSpreadsheet size={15} className="shrink-0 text-[#287653]" />
-              <span>{uploadBanner}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setUploadBanner(null)}
-              className="text-xs font-bold text-[#1B5B3F] hover:underline"
-            >
-              Tutup
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* Ringkasan Statistik 4 KPI Teratas */}
-      <GISStatsSection stats={stats} />
-
-      {/* BLOK 1 (Peta GIS + Rute Distribusi) & BLOK 2 (Kartu Komparasi Harga & Dual-Source) */}
+      {/* Bagian Atas: Peta Interaktif Sebagai Elemen Utama */}
       <GISMapWorkspace
         commodity={commodity}
         setCommodity={setCommodity}
@@ -603,7 +461,6 @@ export default function DashboardPage() {
             activeHorizon={period === 'today' ? 'aktual' : 'h7'}
             selectedRegionId={selectedRegionId}
             onSelectRegion={handleSelectRegion}
-            activeSupplyRoutes={activeSupplyRoutes}
             viewScope={viewScope}
             onViewScopeChange={setViewScope}
             mode="preview"
@@ -615,7 +472,7 @@ export default function DashboardPage() {
             commodity={selectedCommodityObj?.name || 'Cabai Rawit Merah'}
             unit={selectedCommodityObj?.satuan || 'kg'}
             currentPrice={currentPriceRp}
-            hargaAcuanRp={activeRegionTelemetry?.currentPrice?.hargaAcuanRp}
+            hargaAcuanRp={effectiveHargaAcuanRp}
             jenisAcuan={selectedCommodityObj?.jenisAcuan || 'HAP'}
             forecastPrice={forecastPriceRp}
             changePercent={changePercent}
@@ -623,41 +480,75 @@ export default function DashboardPage() {
             hasData={hasData}
             citizenReport={activeCitizenReport}
             multiWindow={activeForecastBundle?.multiWindow ?? null}
-            supplyRoutes={activeSupplyRoutes}
           />
         }
       />
 
-      {/* BLOK 4 (Grafik Tren Multi-Window) & BLOK 3 (Kartu Daya Beli & Keterjangkauan UMK) */}
-      <RegionDetailSection
-        title={`Analisis Multi-Window, Tren H+7 & Daya Beli UMK — ${activeRegionName}`}
-        description="Evaluasi terpadu riwayat harga 14–30 hari, batas anomali 60 hari (μ+2σ), proyeksi H+7 terkalibrasi musiman & stok, serta rasio beban terhadap UMK lokal."
-      >
-        <PriceForecastChart
-          history={activeRegionTelemetry?.history14d ?? []}
-          forecast={activeForecastBundle?.points ?? []}
-          hargaAcuanRp={activeRegionTelemetry?.currentPrice?.hargaAcuanRp}
-          unit={selectedCommodityObj?.satuan === 'liter' ? 'Rp/liter' : 'Rp/kg'}
-          multiWindow={activeForecastBundle?.multiWindow ?? null}
-        />
-        <CommodityPriceTable items={commodityRows} />
-        <AffordabilityIndicator
-          regionName={activeRegionName}
-          commodityName={selectedCommodityObj?.name || 'Komoditas'}
-          unit={selectedCommodityObj?.satuan || 'kg'}
-          population={
-            activeRegionTelemetry?.region?.populasi
-              ? `${numberFormat.format(activeRegionTelemetry.region.populasi)} jiwa`
-              : '—'
-          }
-          umkRp={activeRegionTelemetry?.region?.umk2026 ?? 0}
-          umkRatioBasketPercent={affordability?.umkRatioBasketPercent ?? 0}
-          povertyBasketRatioPercent={affordability?.povertyBasketRatioPercent ?? 0}
-          kategoriDayaBeli={affordability?.kategoriDayaBeli ?? 'TIDAK_ADA_DATA'}
-          commodityBurden={activeCommodityUmkBurden}
-          hasData={hasData}
-        />
-      </RegionDetailSection>
+      {/* Bagian Bawah: Detail Komoditas Terpadu (Map-First Continuity) */}
+      {!hasData ? (
+        <section className="rounded-xl border border-[#DED8CD] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F1F5F9] text-[#64748B]">
+            <MapPin size={24} />
+          </div>
+          <h3 className="mt-3 text-base font-bold text-[#24231F]">
+            Data Harga untuk {activeRegionName} Belum Tersedia
+          </h3>
+          <p className="mx-auto mt-1 max-w-md text-xs text-[#706B62]">
+            Data harga untuk wilayah ini belum tersedia di basis data resmi Bapanas. Silakan pilih kabupaten/kota lain di Jawa Barat pada peta.
+          </p>
+          <button
+            type="button"
+            onClick={() => setSelectedRegionId('all_jabar')}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[#67151D] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#521016]"
+          >
+            Tampilkan Agregasi Jawa Barat
+          </button>
+        </section>
+      ) : (
+        <RegionDetailSection>
+          {/* 1. Tren Harga + Estimasi */}
+          <PriceForecastChart
+            history={effectiveHistory}
+            forecast={activeForecastBundle?.points ?? []}
+            hargaAcuanRp={effectiveHargaAcuanRp}
+            unit={selectedCommodityObj?.satuan === 'liter' ? 'Rp/liter' : 'Rp/kg'}
+            multiWindow={activeForecastBundle?.multiWindow ?? null}
+            regionName={activeRegionName}
+            periodDays={7}
+          />
+
+          {/* 2. Daftar Harga Komoditas */}
+          <CommodityPriceTable items={commodityRows} />
+
+          {/* 3. Daya Beli & Rasio Beban UMK */}
+          <AffordabilityIndicator
+            regionName={activeRegionName}
+            commodityName={selectedCommodityObj?.name || 'Komoditas'}
+            unit={selectedCommodityObj?.satuan || 'kg'}
+            population={effectivePopulation}
+            umkRp={effectiveUmkRp}
+            umkRatioBasketPercent={affordability?.umkRatioBasketPercent ?? 0}
+            povertyBasketRatioPercent={affordability?.povertyBasketRatioPercent ?? 0}
+            kategoriDayaBeli={affordability?.kategoriDayaBeli ?? 'TIDAK_ADA_DATA'}
+            commodityBurden={activeCommodityUmkBurden}
+            hasData={hasData}
+          />
+        </RegionDetailSection>
+      )}
     </GISLayout>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#F7F5EF] p-8 text-center text-xs font-bold text-[#706B62]">
+          Memuat Peta &amp; Data Pangan...
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }

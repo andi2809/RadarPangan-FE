@@ -45,20 +45,20 @@ export function GISMapSection({
       }
     : isKritis
     ? {
-        label: "KRITIS — EWS LEVEL 3",
+        label: "KRITIS - EWS LEVEL 3",
         badgeClass: "bg-[#FBE7E4] text-[#DC4840] border-[#DC4840]/30",
         icon: ShieldAlert,
         summary: "Terdeteksi potensi defisit akut & lonjakan harga signifikan di atas HAP.",
       }
     : isWaspada
     ? {
-        label: "WASPADA — EWS LEVEL 2",
+        label: "WASPADA - EWS LEVEL 2",
         badgeClass: "bg-[#FBF0D7] text-[#96620A] border-[#E9B949]/40",
         icon: AlertCircle,
         summary: "Fluktuasi harga mendekati ambang batas batas toleransi stabilitas pangan.",
       }
     : {
-        label: "TERKENDALI — SURPLUS",
+        label: "TERKENDALI - SURPLUS",
         badgeClass: "bg-[#E3F0E7] text-[#287653] border-[#27815A]/30",
         icon: CheckCircle2,
         summary: "Pasokan stabil, harga berada dalam rentang acuan penjualan pemerintah.",
@@ -68,7 +68,7 @@ export function GISMapSection({
 
   return (
     <section className="overflow-hidden rounded-xl border border-[#DED8CD] bg-white shadow-sm">
-      {/* 1. Toolbar Kontrol Peta & Filter Wilayah */}
+      {/* 1. Toolbar Kontrol Peta & Filter Komoditas/Periode */}
       <div className="p-4 sm:p-5 bg-[#FBF9F4]">
         <GISMapToolbar
           commodity={commodity}
@@ -85,7 +85,7 @@ export function GISMapSection({
         />
       </div>
 
-      {/* 2. STATUS EWS PANGAN DI LUAR PETA INTERAKTIF (Point 5) */}
+      {/* 2. STATUS EWS PANGAN DI LUAR PETA INTERAKTIF */}
       <div className="border-y border-[#DED8CD] bg-[#FFFDF7] px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Status Label & Wilayah */}
@@ -100,6 +100,17 @@ export function GISMapSection({
             <span className="text-sm font-extrabold text-[#24231F]">
               {activeRegionName}
             </span>
+
+            {selectedRegionId && selectedRegionId !== "all_jabar" && (
+              <button
+                type="button"
+                onClick={() => onSelectRegion && onSelectRegion("all_jabar")}
+                className="rounded-md border border-[#D8D1C5] bg-white px-2 py-0.5 text-[11px] font-semibold text-[#706B62] hover:bg-[#F2EEE7] hover:text-[#24231F] transition"
+                title="Tampilkan data agregat seluruh Jawa Barat"
+              >
+                Tampilkan Seluruh Jabar
+              </button>
+            )}
           </div>
 
           {/* Key Metrics Outside Map (Never Hidden on Map Zoom/Pan) */}
@@ -107,20 +118,22 @@ export function GISMapSection({
             <div>
               <span className="text-[#898277] text-[10px] block">Harga Riil:</span>
               <strong className="text-[#24231F]">
-                Rp {currentPriceRp.toLocaleString("id-ID")}/kg
+                {currentPriceRp > 0 ? `Rp ${currentPriceRp.toLocaleString("id-ID")}/kg` : "—"}
               </strong>
             </div>
 
             <div className="border-l border-[#DED8CD] pl-3">
               <span className="text-[#898277] text-[10px] block">Proyeksi H+7:</span>
               <strong className={isKritis ? "text-[#DC4840]" : "text-[#24231F]"}>
-                Rp {forecastPriceRp.toLocaleString("id-ID")}/kg
+                {forecastPriceRp > 0 ? `Rp ${forecastPriceRp.toLocaleString("id-ID")}/kg` : "—"}
               </strong>
             </div>
 
             <div className="border-l border-[#DED8CD] pl-3">
               <span className="text-[#898277] text-[10px] block">Beban UMK:</span>
-              <strong className="text-amber-700">{umkBurdenPercent.toFixed(1)}%</strong>
+              <strong className="text-amber-700">
+                {umkBurdenPercent > 0 ? `${umkBurdenPercent.toFixed(1)}%` : "—"}
+              </strong>
             </div>
           </div>
         </div>

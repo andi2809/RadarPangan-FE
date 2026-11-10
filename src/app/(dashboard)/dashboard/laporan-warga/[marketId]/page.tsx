@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { GISLayout } from '@/components/gis/layout/GISLayout';
 import {
   ArrowLeft,
@@ -11,199 +11,28 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Clock,
   Info,
-  Calendar,
-  RotateCw,
+  BarChart2,
 } from 'lucide-react';
+import {
+  getMarketDetailConsensus,
+  COMMODITY_CONSENSUS_CONFIGS,
+  type AuditReportItem,
+} from '@/data/mock/marketConsensus';
 
 const numberFormat = new Intl.NumberFormat('id-ID');
 const LAST_UPDATED_TEXT = '24 Okt 2026, 09:27 WIB';
 
-export interface AuditReportItem {
-  id: string;
-  waktuLapor: string;
-  hargaRp: number;
-  jarakKm: number;
-  status: 'valid' | 'outlier' | 'radius_invalid' | 'duplicate';
-  keterangan: string;
-}
-
-// 18 Individual Citizen Reports for Pasar Baru Cikarang (Cabai Rawit Merah)
-// Exactly matching the math, counts, and distribution in the design brief:
-// 18 Total Reports:
-// - 1 Duplikat Perangkat ditolak -> 17 Perangkat Unik
-// - 1 Di Luar Radius (> 3 km) ditolak -> 16 Dalam Radius
-// - 1 Outlier MAD (> 10% deviasi) dikeluarkan -> 15 Laporan Valid
-// 15 Laporan Valid: median = Rp49.500 (Kuorum Tercapai 15/10)
-const MOCK_AUDIT_REPORTS: AuditReportItem[] = [
-  {
-    id: 'RPT-CKR-001',
-    waktuLapor: '24 Okt 2026, 09:14',
-    hargaRp: 49500,
-    jarakKm: 1.2,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-002',
-    waktuLapor: '24 Okt 2026, 09:02',
-    hargaRp: 50000,
-    jarakKm: 0.8,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-003',
-    waktuLapor: '24 Okt 2026, 08:57',
-    hargaRp: 49000,
-    jarakKm: 1.9,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-004',
-    waktuLapor: '24 Okt 2026, 08:41',
-    hargaRp: 56000,
-    jarakKm: 2.1,
-    status: 'outlier',
-    keterangan: 'Deviasi +13,1% dari median (> 10%)',
-  },
-  {
-    id: 'RPT-CKR-005',
-    waktuLapor: '24 Okt 2026, 08:37',
-    hargaRp: 48500,
-    jarakKm: 0.6,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-006',
-    waktuLapor: '24 Okt 2026, 08:30',
-    hargaRp: 49500,
-    jarakKm: 1.4,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-007',
-    waktuLapor: '24 Okt 2026, 08:24',
-    hargaRp: 50500,
-    jarakKm: 2.5,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-008',
-    waktuLapor: '24 Okt 2026, 08:18',
-    hargaRp: 49500,
-    jarakKm: 0.4,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-009',
-    waktuLapor: '24 Okt 2026, 08:11',
-    hargaRp: 48000,
-    jarakKm: 1.7,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-010',
-    waktuLapor: '24 Okt 2026, 08:05',
-    hargaRp: 51000,
-    jarakKm: 2.8,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-011',
-    waktuLapor: '24 Okt 2026, 07:58',
-    hargaRp: 49500,
-    jarakKm: 1.1,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-012',
-    waktuLapor: '24 Okt 2026, 07:49',
-    hargaRp: 49000,
-    jarakKm: 0.9,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-013',
-    waktuLapor: '24 Okt 2026, 07:42',
-    hargaRp: 50000,
-    jarakKm: 2.2,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-014',
-    waktuLapor: '24 Okt 2026, 07:35',
-    hargaRp: 52000,
-    jarakKm: 1.6,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-015',
-    waktuLapor: '24 Okt 2026, 07:28',
-    hargaRp: 47000,
-    jarakKm: 2.7,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-016',
-    waktuLapor: '24 Okt 2026, 07:20',
-    hargaRp: 48500,
-    jarakKm: 1.5,
-    status: 'valid',
-    keterangan: 'Masuk radius, dalam rentang wajar',
-  },
-  {
-    id: 'RPT-CKR-017',
-    waktuLapor: '24 Okt 2026, 07:12',
-    hargaRp: 49000,
-    jarakKm: 4.8,
-    status: 'radius_invalid',
-    keterangan: 'Jarak 4.8 km dari pasar (> 3 km)',
-  },
-  {
-    id: 'RPT-CKR-018',
-    waktuLapor: '24 Okt 2026, 07:05',
-    hargaRp: 49500,
-    jarakKm: 1.0,
-    status: 'duplicate',
-    keterangan: 'Duplikasi perangkat: Perangkat telah melapor hari ini',
-  },
-];
-
-// Histogram buckets for 15 valid reports:
-// 47.000: 1, 48.000: 1, 48.500: 2, 49.000: 2, 49.500: 4 (median), 50.000: 2, 50.500: 1, 51.000: 1, 52.000: 1
-const HISTOGRAM_BINS = [
-  { price: 47000, label: '47.000', count: 1 },
-  { price: 47500, label: '47.500', count: 0 },
-  { price: 48000, label: '48.000', count: 1 },
-  { price: 48500, label: '48.500', count: 2 },
-  { price: 49000, label: '49.000', count: 2 },
-  { price: 49500, label: '49.500', count: 4, isMedian: true },
-  { price: 50000, label: '50.000', count: 2 },
-  { price: 50500, label: '50.500', count: 1 },
-  { price: 51000, label: '51.000', count: 1 },
-  { price: 51500, label: '51.500', count: 0 },
-  { price: 52000, label: '52.000', count: 1 },
-];
-
-export default function DetailLaporanPasarPage() {
+function DetailLaporanPasarContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
+
   const marketId = (params?.marketId as string) || 'psr-bekasikab-01';
+  const paramCommodity = searchParams?.get('komoditas') || 'Cabai Rawit Merah';
 
   // Filters state
-  const [selectedCommodity, setSelectedCommodity] = useState<string>('Cabai Rawit Merah (kg)');
+  const [selectedCommodity, setSelectedCommodity] = useState<string>(paramCommodity);
   const [tableFilter, setTableFilter] = useState<'all' | 'valid' | 'outlier' | 'radius_invalid'>('all');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 5;
@@ -215,17 +44,22 @@ export default function DetailLaporanPasarPage() {
     setOpenStep(openStep === stepNumber ? null : stepNumber);
   };
 
+  // Ambil data konsensus dan audit deterministik untuk (marketId, selectedCommodity)
+  const detailData = useMemo(() => {
+    return getMarketDetailConsensus(marketId, selectedCommodity);
+  }, [marketId, selectedCommodity]);
+
   // Filtered reports for individual audit table
   const filteredReports = useMemo(() => {
-    if (tableFilter === 'all') return MOCK_AUDIT_REPORTS;
-    if (tableFilter === 'valid') return MOCK_AUDIT_REPORTS.filter((r) => r.status === 'valid');
-    if (tableFilter === 'outlier') return MOCK_AUDIT_REPORTS.filter((r) => r.status === 'outlier');
+    if (tableFilter === 'all') return detailData.auditReports;
+    if (tableFilter === 'valid') return detailData.auditReports.filter((r) => r.status === 'valid');
+    if (tableFilter === 'outlier') return detailData.auditReports.filter((r) => r.status === 'outlier');
     if (tableFilter === 'radius_invalid')
-      return MOCK_AUDIT_REPORTS.filter((r) => r.status === 'radius_invalid' || r.status === 'duplicate');
-    return MOCK_AUDIT_REPORTS;
-  }, [tableFilter]);
+      return detailData.auditReports.filter((r) => r.status === 'radius_invalid' || r.status === 'duplicate');
+    return detailData.auditReports;
+  }, [detailData.auditReports, tableFilter]);
 
-  const totalPages = Math.ceil(filteredReports.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
   const paginatedReports = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredReports.slice(start, start + pageSize);
@@ -233,17 +67,26 @@ export default function DetailLaporanPasarPage() {
 
   const counts = useMemo(() => {
     return {
-      all: MOCK_AUDIT_REPORTS.length, // 18
-      valid: MOCK_AUDIT_REPORTS.filter((r) => r.status === 'valid').length, // 15
-      outlier: MOCK_AUDIT_REPORTS.filter((r) => r.status === 'outlier').length, // 1
-      radius_invalid: MOCK_AUDIT_REPORTS.filter((r) => r.status === 'radius_invalid').length, // 1
-      duplicate: MOCK_AUDIT_REPORTS.filter((r) => r.status === 'duplicate').length, // 1
+      all: detailData.auditReports.length,
+      valid: detailData.auditReports.filter((r) => r.status === 'valid').length,
+      outlier: detailData.auditReports.filter((r) => r.status === 'outlier').length,
+      radius_invalid: detailData.auditReports.filter((r) => r.status === 'radius_invalid').length,
+      duplicate: detailData.auditReports.filter((r) => r.status === 'duplicate').length,
     };
-  }, []);
+  }, [detailData.auditReports]);
+
+  const isTercapai = detailData.kpi.statusKuorum === 'tercapai';
+  const isMenunggu = detailData.kpi.statusKuorum === 'menunggu';
+
+  // Maksimum frekuensi untuk skala tinggi histogram
+  const maxBinCount = useMemo(() => {
+    if (!detailData.histogramBins.length) return 5;
+    return Math.max(5, ...detailData.histogramBins.map((b) => b.count));
+  }, [detailData.histogramBins]);
 
   return (
     <GISLayout>
-      {/* Top Header Bar - Matching Reference Image */}
+      {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-[#DED8CD] pb-3 text-xs">
         <div className="flex items-center gap-1.5 font-sans">
           <span className="font-extrabold tracking-wider text-[#67151D]">RADAR PANGAN</span>
@@ -273,33 +116,41 @@ export default function DetailLaporanPasarPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <span className="block text-[11px] font-extrabold uppercase tracking-widest text-[#67151D]">
-              VALIDASI LAPORAN WARGA
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="block text-[11px] font-extrabold uppercase tracking-widest text-[#67151D]">
+                VALIDASI LAPORAN WARGA
+              </span>
+              <span className="inline-flex items-center rounded-full bg-[#F0ECE4] px-2 py-0.5 text-[10px] font-mono font-bold text-[#706B62]">
+                {detailData.quorumCoverage.reached} dari {detailData.quorumCoverage.total} komoditas kuorum
+              </span>
+            </div>
             <h1 className="mt-0.5 text-2xl sm:text-3xl font-extrabold tracking-tight text-[#24231F]">
-              Detail Laporan Pasar Baru Cikarang
+              Detail Laporan {detailData.market.namaPasar}
             </h1>
             <p className="mt-1 text-xs text-[#706B62]">
-              Kabupaten Bekasi · Laporan hari ini (24 Okt 2026)
+              {detailData.market.kabupatenKota} &bull; Laporan aktif hari ini (24 Okt 2026)
             </p>
           </div>
 
-          <div className="w-full sm:w-56">
+          <div className="w-full sm:w-60">
             <label className="mb-1 block text-[11px] font-bold text-[#706B62]">
-              Komoditas
+              Pilih Komoditas yang Diaudit
             </label>
             <div className="relative">
               <select
                 value={selectedCommodity}
-                onChange={(e) => setSelectedCommodity(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCommodity(e.target.value);
+                  setCurrentPage(1);
+                  setTableFilter('all');
+                }}
                 className="h-9 w-full appearance-none rounded-lg border border-[#D8D1C5] bg-white pl-3 pr-8 text-xs font-bold text-[#24231F] outline-none transition focus:border-[#67151D]"
               >
-                <option value="Cabai Rawit Merah (kg)">Cabai Rawit Merah (kg)</option>
-                <option value="Beras Medium (kg)">Beras Medium (kg)</option>
-                <option value="Bawang Merah (kg)">Bawang Merah (kg)</option>
-                <option value="Telur Ayam Ras (kg)">Telur Ayam Ras (kg)</option>
-                <option value="Minyak Kemasan (liter)">Minyak Kemasan (liter)</option>
-                <option value="Minyak Curah (liter)">Minyak Curah (liter)</option>
+                {COMMODITY_CONSENSUS_CONFIGS.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name} ({c.satuan})
+                  </option>
+                ))}
               </select>
               <ChevronDown
                 size={14}
@@ -310,50 +161,84 @@ export default function DetailLaporanPasarPage() {
         </div>
       </section>
 
-      {/* 7 KPI Stat Metrics in 1 Row - Matching Reference Image */}
+      {/* 7 KPI Stat Metrics in 1 Row */}
       <section className="grid grid-cols-2 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-[#DED8CD] rounded-xl border border-[#DED8CD] bg-white p-4 shadow-sm text-xs">
         {/* 1. Laporan masuk */}
         <div className="px-3 py-1 first:pl-0">
           <span className="block text-[11px] text-[#706B62]">Laporan masuk</span>
-          <strong className="mt-1 block text-2xl font-black text-[#B91C1C]">18</strong>
+          <strong className="mt-1 block text-2xl font-black text-[#B91C1C]">
+            {detailData.kpi.laporanMasuk}
+          </strong>
         </div>
 
         {/* 2. Perangkat unik */}
         <div className="px-3 py-1">
           <span className="block text-[11px] text-[#706B62]">Perangkat unik</span>
-          <strong className="mt-1 block text-2xl font-black text-[#1D4ED8]">17</strong>
+          <strong className="mt-1 block text-2xl font-black text-[#1D4ED8]">
+            {detailData.kpi.perangkatUnik}
+          </strong>
         </div>
 
         {/* 3. Dalam radius <= 3 km */}
         <div className="px-3 py-1">
           <span className="block text-[11px] text-[#706B62]">Dalam radius ≤ 3 km</span>
-          <strong className="mt-1 block text-2xl font-black text-[#15803D]">16</strong>
+          <strong className="mt-1 block text-2xl font-black text-[#15803D]">
+            {detailData.kpi.radiusValid}
+          </strong>
         </div>
 
         {/* 4. Di luar radius */}
         <div className="px-3 py-1">
           <span className="block text-[11px] text-[#706B62]">Di luar radius</span>
-          <strong className="mt-1 block text-2xl font-black text-[#24231F]">1</strong>
+          <strong className="mt-1 block text-2xl font-black text-[#24231F]">
+            {detailData.kpi.diLuarRadius}
+          </strong>
         </div>
 
         {/* 5. Outlier (MAD) */}
         <div className="px-3 py-1">
           <span className="block text-[11px] text-[#706B62]">Outlier (MAD)</span>
-          <strong className="mt-1 block text-2xl font-black text-[#B45309]">1</strong>
+          <strong className="mt-1 block text-2xl font-black text-[#B45309]">
+            {detailData.kpi.outlierMad}
+          </strong>
         </div>
 
         {/* 6. Laporan valid */}
         <div className="px-3 py-1">
           <span className="block text-[11px] text-[#706B62]">Laporan valid</span>
-          <strong className="mt-1 block text-2xl font-black text-[#24231F]">15</strong>
+          <strong className="mt-1 block text-2xl font-black text-[#24231F]">
+            {detailData.kpi.laporanValid}
+          </strong>
         </div>
 
         {/* 7. Status kuorum */}
         <div className="px-3 py-1 last:pr-0 col-span-2 md:col-span-1">
           <span className="block text-[11px] text-[#706B62]">Status kuorum</span>
-          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#E3F0E7] px-3 py-1 text-xs font-bold text-[#15803D]">
-            <CheckCircle2 size={13} />
-            <span>Tercapai (15 / 10)</span>
+          <div
+            className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
+              isTercapai
+                ? 'bg-[#E3F0E7] text-[#15803D]'
+                : isMenunggu
+                ? 'bg-[#FFFBEB] text-[#D97706]'
+                : 'bg-[#F0ECE4] text-[#706B62]'
+            }`}
+          >
+            {isTercapai ? (
+              <>
+                <CheckCircle2 size={13} />
+                <span>Tercapai ({detailData.kpi.laporanValid} / 10)</span>
+              </>
+            ) : isMenunggu ? (
+              <>
+                <Clock size={13} />
+                <span>Menunggu ({detailData.kpi.laporanValid} / 10)</span>
+              </>
+            ) : (
+              <>
+                <Info size={13} />
+                <span>0 / 10 · Belum ada</span>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -369,30 +254,68 @@ export default function DetailLaporanPasarPage() {
                 Konsensus Harga Warga
               </h3>
               <p className="mt-0.5 text-xs text-[#706B62]">
-                Hasil setelah melalui 3 saringan otomatis.
+                Hasil 3 saringan otomatis untuk {detailData.commodity.name}.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-3xl font-black tracking-tight text-[#67151D]">
-                Rp49.500<span className="text-sm font-normal text-[#706B62]">/kg</span>
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#E3F0E7] px-2.5 py-0.5 text-xs font-bold text-[#15803D]">
-                <CheckCircle2 size={12} />
-                <span>Valid</span>
-              </span>
+              {detailData.hargaWargaRp ? (
+                <>
+                  <span className="text-3xl font-black tracking-tight text-[#67151D]">
+                    Rp{numberFormat.format(detailData.hargaWargaRp)}
+                    <span className="text-sm font-normal text-[#706B62]">
+                      /{detailData.commodity.satuan}
+                    </span>
+                  </span>
+                  {isTercapai ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#E3F0E7] px-2.5 py-0.5 text-xs font-bold text-[#15803D]">
+                      <CheckCircle2 size={12} />
+                      <span>Valid</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#FFFBEB] px-2.5 py-0.5 text-xs font-bold text-[#D97706]">
+                      <Clock size={12} />
+                      <span>Indikatif Sementara</span>
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-xl font-bold italic text-[#706B62]">
+                  Belum terbentuk
+                </span>
+              )}
             </div>
 
             <div className="border-t border-[#F0ECE4] pt-3 space-y-2.5 text-xs font-sans">
               <div className="flex items-center justify-between">
-                <span className="text-[#706B62]">Harga acuan pemerintah (HET/HAP)</span>
-                <strong className="font-mono text-[#24231F]">Rp48.200 /kg</strong>
+                <span className="text-[#706B62]">
+                  Harga acuan pemerintah ({detailData.commodity.jenisAcuan})
+                </span>
+                <strong className="font-mono text-[#24231F]">
+                  Rp{numberFormat.format(detailData.hargaAcuanRp)} /{detailData.commodity.satuan}
+                </strong>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#706B62]">Selisih terhadap acuan</span>
-                <strong className="font-mono font-bold text-[#67151D]">+2,7%</strong>
+                <strong
+                  className={`font-mono font-bold ${
+                    detailData.selisihPct !== null && detailData.selisihPct > 0
+                      ? 'text-[#67151D]'
+                      : 'text-[#15803D]'
+                  }`}
+                >
+                  {detailData.selisihPct !== null
+                    ? `${detailData.selisihPct > 0 ? '+' : ''}${detailData.selisihPct.toFixed(1)}%`
+                    : '-'}
+                </strong>
               </div>
             </div>
+
+            {!isTercapai && detailData.kpi.laporanValid > 0 && (
+              <p className="rounded-lg bg-[#FFFBEB] p-2.5 text-[11px] text-[#92400E] leading-relaxed">
+                Harga ini dihitung dari nilai tengah (median) sementara {detailData.kpi.laporanValid} laporan valid. Belum disahkan sebagai konsensus resmi TPID karena kuorum minimal 10 laporan belum tercapai.
+              </p>
+            )}
           </div>
 
           {/* Card 2: Alur Pemeriksaan Laporan */}
@@ -402,7 +325,7 @@ export default function DetailLaporanPasarPage() {
                 Alur Pemeriksaan Laporan
               </h3>
               <p className="mt-0.5 text-xs text-[#706B62]">
-                Setiap laporan melalui 3 saringan berurutan:
+                Evaluasi 3 saringan untuk komoditas {detailData.commodity.name}:
               </p>
             </div>
 
@@ -414,7 +337,11 @@ export default function DetailLaporanPasarPage() {
                   onClick={() => toggleStep(1)}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#15803D] text-white">
+                    <div
+                      className={`flex h-5 w-5 items-center justify-center rounded-full text-white ${
+                        detailData.kpi.radiusValid > 0 ? 'bg-[#15803D]' : 'bg-[#706B62]'
+                      }`}
+                    >
                       <CheckCircle2 size={13} />
                     </div>
                     <div>
@@ -422,7 +349,7 @@ export default function DetailLaporanPasarPage() {
                         1. Satu Perangkat &amp; Radius Pasar
                       </span>
                       <span className="block text-[11px] text-[#706B62]">
-                        Lolos: 16 dari 18 laporan
+                        Lolos: {detailData.kpi.radiusValid} dari {detailData.kpi.laporanMasuk} laporan
                       </span>
                     </div>
                   </div>
@@ -430,8 +357,12 @@ export default function DetailLaporanPasarPage() {
                 </div>
                 {openStep === 1 && (
                   <div className="mt-2.5 border-t border-[#DED8CD] pt-2 text-[11px] text-[#4A4740] space-y-1">
-                    <p>• Deduplikasi fingerprint: 1 duplikat diblokir.</p>
-                    <p>• Geofencing: 1 laporan berjarak &gt; 3 km dari pasar ditolak.</p>
+                    <p>
+                      &bull; Deduplikasi fingerprint: {detailData.kpi.laporanMasuk - detailData.kpi.perangkatUnik} duplikat diblokir.
+                    </p>
+                    <p>
+                      &bull; Geofencing: {detailData.kpi.diLuarRadius} laporan berjarak &gt; 3 km dari pasar ditolak.
+                    </p>
                   </div>
                 )}
               </div>
@@ -443,15 +374,21 @@ export default function DetailLaporanPasarPage() {
                   onClick={() => toggleStep(2)}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#15803D] text-white">
-                      <CheckCircle2 size={13} />
+                    <div
+                      className={`flex h-5 w-5 items-center justify-center rounded-full text-white ${
+                        isTercapai ? 'bg-[#15803D]' : isMenunggu ? 'bg-[#D97706]' : 'bg-[#706B62]'
+                      }`}
+                    >
+                      {isTercapai ? <CheckCircle2 size={13} /> : <Clock size={13} />}
                     </div>
                     <div>
                       <span className="font-bold text-[#24231F]">
                         2. Kuorum Minimal 10 Laporan
                       </span>
                       <span className="block text-[11px] text-[#706B62]">
-                        Tercapai: 15 laporan valid
+                        {isTercapai
+                          ? `Tercapai: ${detailData.kpi.laporanValid} laporan valid`
+                          : `Menunggu: ${detailData.kpi.laporanValid} dari minimal 10 laporan`}
                       </span>
                     </div>
                   </div>
@@ -459,7 +396,11 @@ export default function DetailLaporanPasarPage() {
                 </div>
                 {openStep === 2 && (
                   <div className="mt-2.5 border-t border-[#DED8CD] pt-2 text-[11px] text-[#4A4740]">
-                    <p>Syarat kuorum (≥ 10 laporan terverifikasi) terpenuhi dengan 15 laporan independen.</p>
+                    <p>
+                      {isTercapai
+                        ? `Syarat kuorum (≥ 10 laporan terverifikasi) terpenuhi dengan ${detailData.kpi.laporanValid} laporan independen.`
+                        : `Syarat kuorum belum terpenuhi. Baru terkumpul ${detailData.kpi.laporanValid} dari ambang batas 10 laporan.`}
+                    </p>
                   </div>
                 )}
               </div>
@@ -479,7 +420,7 @@ export default function DetailLaporanPasarPage() {
                         3. Pembuangan Harga Ekstrem (MAD)
                       </span>
                       <span className="block text-[11px] text-[#706B62]">
-                        Dikeluarkan: 1 laporan (deviasi &gt; 10%)
+                        Dikeluarkan: {detailData.kpi.outlierMad} laporan (deviasi &gt; 10%)
                       </span>
                     </div>
                   </div>
@@ -487,7 +428,11 @@ export default function DetailLaporanPasarPage() {
                 </div>
                 {openStep === 3 && (
                   <div className="mt-2.5 border-t border-[#DED8CD] pt-2 text-[11px] text-[#4A4740]">
-                    <p>1 laporan seharga Rp56.000 terdeteksi menyimpang +13,1% dari median wajar dan dikeluarkan.</p>
+                    <p>
+                      {detailData.kpi.outlierMad > 0
+                        ? `${detailData.kpi.outlierMad} laporan terdeteksi menyimpang ekstrem dari median wajar dan dikeluarkan.`
+                        : 'Tidak ada laporan yang terdeteksi menyimpang ekstrem di luar toleransi MAD.'}
+                    </p>
                   </div>
                 )}
               </div>
@@ -497,7 +442,7 @@ export default function DetailLaporanPasarPage() {
             <div className="flex items-start gap-2 rounded-lg bg-[#F0F4F8] p-3 text-[11px] text-[#4A4740]">
               <Info size={14} className="mt-0.5 flex-shrink-0 text-[#1D4ED8]" />
               <span>
-                Hanya laporan hari ini yang diproses. Laporan sebelum hari ini dinyatakan kedaluwarsa.
+                Hanya laporan hari ini yang diproses. Laporan dari hari sebelumnya berstatus kedaluwarsa dan tidak masuk ke dalam kuorum aktif.
               </span>
             </div>
           </div>
@@ -505,75 +450,105 @@ export default function DetailLaporanPasarPage() {
 
         {/* Right Column: Histogram & Audit Table (~65% width) */}
         <div className="lg:col-span-8 space-y-5">
-          {/* Card 1: Distribusi Harga Laporan Valid (15 laporan) */}
+          {/* Card 1: Distribusi Harga Laporan Valid */}
           <div className="rounded-xl border border-[#DED8CD] bg-white p-5 shadow-sm space-y-4">
-            <h3 className="text-base font-extrabold text-[#24231F]">
-              Distribusi Harga Laporan Valid (15 laporan)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-[#24231F]">
+                Distribusi Harga Laporan Valid ({detailData.kpi.laporanValid} laporan) &bull; {detailData.commodity.name}
+              </h3>
+              {detailData.hargaWargaRp && (
+                <span className="font-mono text-xs font-bold text-[#67151D] bg-[#FDF2F2] px-2.5 py-1 rounded-md border border-[#FADBD8]">
+                  Median: Rp{numberFormat.format(detailData.hargaWargaRp)}/{detailData.commodity.satuan}
+                </span>
+              )}
+            </div>
 
-            {/* Histogram Chart */}
-            <div className="w-full pt-6 pb-2">
-              <div className="relative h-44 w-full flex items-end justify-between gap-1 px-8 pb-7 border-b border-[#DED8CD]">
-                {/* Y-Axis Label */}
-                <div className="absolute -left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] text-[#706B62] font-sans">
-                  Jumlah laporan
+            {detailData.kpi.laporanValid === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#DED8CD] bg-[#FBF9F4] p-8 text-center space-y-2">
+                <BarChart2 className="w-10 h-10 text-[#898277] mx-auto opacity-50" />
+                <p className="text-sm font-bold text-[#24231F]">
+                  Belum Ada Laporan Terverifikasi
+                </p>
+                <p className="text-xs text-[#706B62] max-w-md mx-auto">
+                  Belum ada laporan warga yang lolos verifikasi untuk komoditas <strong>{detailData.commodity.name}</strong> di {detailData.market.namaPasar} hari ini.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    href="/lapor"
+                    className="inline-block py-2 px-4 rounded-lg bg-[#67151D] hover:bg-[#4C0D15] text-white text-xs font-bold transition"
+                  >
+                    Kirim Laporan Harga Sekarang &rarr;
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              /* Histogram Chart */
+              <div className="w-full pt-6 pb-2">
+                <div className="relative h-44 w-full flex items-end justify-between gap-1 px-8 pb-7 border-b border-[#DED8CD]">
+                  {/* Y-Axis Label */}
+                  <div className="absolute -left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] text-[#706B62] font-sans">
+                    Jumlah laporan
+                  </div>
+
+                  {/* Horizontal Guide Lines */}
+                  {[1, 2, 3, 4, 5].map((level) => {
+                    const stepPx = 110 / 5;
+                    return (
+                      <div
+                        key={level}
+                        className="absolute left-6 right-2 border-b border-[#F0ECE4] pointer-events-none"
+                        style={{ bottom: `${28 + level * stepPx}px` }}
+                      >
+                        <span className="absolute -left-5 -top-2 text-[9px] text-[#898277] font-mono">
+                          {Math.round((level / 5) * maxBinCount)}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  {/* Histogram Bars */}
+                  {detailData.histogramBins.map((bin) => {
+                    const barHeightPct = maxBinCount > 0 ? (bin.count / maxBinCount) * 100 : 0;
+                    return (
+                      <div
+                        key={bin.label}
+                        className="relative flex-1 flex flex-col items-center justify-end h-full"
+                      >
+                        {/* Median Pointer */}
+                        {bin.isMedian && (
+                          <div className="absolute -top-7 flex flex-col items-center z-10">
+                            <span className="rounded-md bg-[#FADBD8] px-2 py-0.5 text-[9.5px] font-bold text-[#67151D] shadow-sm whitespace-nowrap">
+                              Median Rp{bin.label}
+                            </span>
+                            <div className="h-2 w-px border-l border-dashed border-[#67151D]" />
+                          </div>
+                        )}
+
+                        {/* Bar */}
+                        {bin.count > 0 && (
+                          <div
+                            className={`w-full max-w-[32px] rounded-t-sm transition-all ${
+                              bin.isMedian ? 'bg-[#8A1C24]' : 'bg-[#E8A59E]'
+                            }`}
+                            style={{ height: `${Math.max(4, (barHeightPct / 100) * 110)}px` }}
+                          />
+                        )}
+
+                        {/* X-axis tick label */}
+                        <span className="absolute -bottom-6 text-[9px] font-mono text-[#706B62] whitespace-nowrap">
+                          {bin.label}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {/* Horizontal Guide Lines */}
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <div
-                    key={level}
-                    className="absolute left-6 right-2 border-b border-[#F0ECE4] pointer-events-none"
-                    style={{ bottom: `${28 + level * 22}px` }}
-                  >
-                    <span className="absolute -left-5 -top-2 text-[9px] text-[#898277] font-mono">
-                      {level}
-                    </span>
-                  </div>
-                ))}
-
-                {/* Histogram Bars */}
-                {HISTOGRAM_BINS.map((bin) => {
-                  const barHeight = bin.count * 22; // 22px per count
-                  return (
-                    <div
-                      key={bin.label}
-                      className="relative flex-1 flex flex-col items-center justify-end h-full"
-                    >
-                      {/* Median Pointer above the 49.500 bar */}
-                      {bin.isMedian && (
-                        <div className="absolute -top-6 flex flex-col items-center">
-                          <span className="rounded-md bg-[#FADBD8] px-2 py-0.5 text-[10px] font-bold text-[#67151D] shadow-sm whitespace-nowrap">
-                            Median Rp49.500
-                          </span>
-                          <div className="h-2 w-px border-l border-dashed border-[#67151D]" />
-                        </div>
-                      )}
-
-                      {/* Bar */}
-                      {bin.count > 0 && (
-                        <div
-                          className={`w-full max-w-[32px] rounded-t-sm transition-all ${
-                            bin.isMedian ? 'bg-[#8A1C24]' : 'bg-[#E8A59E]'
-                          }`}
-                          style={{ height: `${barHeight}px` }}
-                        />
-                      )}
-
-                      {/* X-axis tick label */}
-                      <span className="absolute -bottom-6 text-[9.5px] font-mono text-[#706B62] whitespace-nowrap">
-                        {bin.label}
-                      </span>
-                    </div>
-                  );
-                })}
+                {/* Bottom Sumbu X Caption */}
+                <div className="text-center pt-3 text-[11px] font-bold text-[#706B62]">
+                  Harga (Rp/{detailData.commodity.satuan})
+                </div>
               </div>
-
-              {/* Bottom Sumbu X Caption */}
-              <div className="text-center pt-3 text-[11px] font-bold text-[#706B62]">
-                Harga (Rp/kg)
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Card 2: Tabel Audit Laporan Individual */}
@@ -637,105 +612,130 @@ export default function DetailLaporanPasarPage() {
                     : 'text-[#706B62] hover:text-[#24231F]'
                 }`}
               >
-                Di Luar Radius ({counts.radius_invalid})
+                Di Luar Radius ({counts.radius_invalid + counts.duplicate})
               </button>
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs">
-                <thead>
-                  <tr className="border-b border-[#DED8CD] bg-[#FBF9F4] text-[11px] font-extrabold text-[#706B62]">
-                    <th className="px-4 py-2.5">Waktu Lapor</th>
-                    <th className="px-4 py-2.5 text-right">Harga (Rp/kg)</th>
-                    <th className="px-4 py-2.5 text-center">Status Pemeriksaan</th>
-                    <th className="px-4 py-2.5">Keterangan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F0ECE4] text-xs">
-                  {paginatedReports.map((r) => {
-                    const isValid = r.status === 'valid';
-                    const isOutlier = r.status === 'outlier';
-                    const isRadius = r.status === 'radius_invalid';
+            {filteredReports.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#706B62]">
+                Tidak ada laporan yang sesuai dengan kriteria saringan ini.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-[#DED8CD] bg-[#FBF9F4] text-[11px] font-extrabold text-[#706B62]">
+                      <th className="px-4 py-2.5">ID Tiket</th>
+                      <th className="px-4 py-2.5">Waktu Lapor</th>
+                      <th className="px-4 py-2.5 text-right">Harga (Rp/{detailData.commodity.satuan})</th>
+                      <th className="px-4 py-2.5 text-center">Status Pemeriksaan</th>
+                      <th className="px-4 py-2.5">Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0ECE4] text-xs">
+                    {paginatedReports.map((r) => {
+                      const isValid = r.status === 'valid';
+                      const isOutlier = r.status === 'outlier';
 
-                    return (
-                      <tr key={r.id} className="hover:bg-[#FBF9F4] transition">
-                        <td className="px-4 py-3 font-mono text-[#24231F]">
-                          {r.waktuLapor}
-                        </td>
-                        <td className="px-4 py-3 text-right font-mono font-bold text-[#24231F]">
-                          Rp{numberFormat.format(r.hargaRp)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {isValid ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#E3F0E7] px-2.5 py-0.5 text-[11px] font-bold text-[#15803D]">
-                              <CheckCircle2 size={11} />
-                              <span>Valid</span>
-                            </span>
-                          ) : isOutlier ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#FFFBEB] px-2.5 py-0.5 text-[11px] font-bold text-[#D97706]">
-                              <AlertTriangle size={11} />
-                              <span>Outlier</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#FDF2F2] px-2.5 py-0.5 text-[11px] font-bold text-[#DC2626]">
-                              <XCircle size={11} />
-                              <span>Di Luar Radius</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-[#706B62]">{r.keterangan}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={r.id} className="hover:bg-[#FBF9F4] transition">
+                          <td className="px-4 py-3 font-mono font-bold text-[#67151D]">
+                            {r.id}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-[#24231F]">
+                            {r.waktuLapor}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono font-bold text-[#24231F]">
+                            Rp{numberFormat.format(r.hargaRp)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {isValid ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#E3F0E7] px-2.5 py-0.5 text-[11px] font-bold text-[#15803D]">
+                                <CheckCircle2 size={11} />
+                                <span>Valid</span>
+                              </span>
+                            ) : isOutlier ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#FFFBEB] px-2.5 py-0.5 text-[11px] font-bold text-[#D97706]">
+                                <AlertTriangle size={11} />
+                                <span>Outlier</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#FDF2F2] px-2.5 py-0.5 text-[11px] font-bold text-[#DC2626]">
+                                <XCircle size={11} />
+                                <span>Tidak Valid</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-[#706B62]">{r.keterangan}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Pagination Controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 text-xs">
-              <span className="text-[#706B62]">
-                Menampilkan {paginatedReports.length} dari {filteredReports.length} laporan
-              </span>
+            {filteredReports.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 text-xs">
+                <span className="text-[#706B62]">
+                  Menampilkan {paginatedReports.length} dari {filteredReports.length} laporan
+                </span>
 
-              <div className="flex items-center gap-1 self-center sm:self-auto">
-                <button
-                  type="button"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="flex h-7 w-7 items-center justify-center rounded border border-[#DED8CD] text-xs font-bold text-[#706B62] disabled:opacity-30 hover:bg-[#F0EBDE]"
-                >
-                  &lt;
-                </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <div className="flex items-center gap-1 self-center sm:self-auto">
                   <button
-                    key={page}
                     type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={`flex h-7 w-7 items-center justify-center rounded text-xs font-bold transition ${
-                      currentPage === page
-                        ? 'bg-[#67151D] text-white shadow-sm'
-                        : 'border border-[#DED8CD] text-[#706B62] hover:bg-[#F0EBDE]'
-                    }`}
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="flex h-7 w-7 items-center justify-center rounded border border-[#DED8CD] text-xs font-bold text-[#706B62] disabled:opacity-30 hover:bg-[#F0EBDE]"
                   >
-                    {page}
+                    &lt;
                   </button>
-                ))}
 
-                <button
-                  type="button"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="flex h-7 w-7 items-center justify-center rounded border border-[#DED8CD] text-xs font-bold text-[#706B62] disabled:opacity-30 hover:bg-[#F0EBDE]"
-                >
-                  &gt;
-                </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={`flex h-7 w-7 items-center justify-center rounded text-xs font-bold transition ${
+                        currentPage === page
+                          ? 'bg-[#67151D] text-white shadow-sm'
+                          : 'border border-[#DED8CD] text-[#706B62] hover:bg-[#F0EBDE]'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="flex h-7 w-7 items-center justify-center rounded border border-[#DED8CD] text-xs font-bold text-[#706B62] disabled:opacity-30 hover:bg-[#F0EBDE]"
+                  >
+                    &gt;
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
     </GISLayout>
+  );
+}
+
+export default function DetailLaporanPasarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-[#FBF9F4] text-xs text-[#706B62]">
+          Memuat data audit konsensus...
+        </div>
+      }
+    >
+      <DetailLaporanPasarContent />
+    </Suspense>
   );
 }

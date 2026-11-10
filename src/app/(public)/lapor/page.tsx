@@ -5,6 +5,7 @@ import commoditiesData from '../../../data/mock/commodities.json';
 import regionsData from '../../../data/mock/regions.json';
 import { OFFICIAL_MARKETS_BY_REGION } from '../../../data/mock/officialMarkets';
 import { loadCitizenReports, saveCitizenReports } from '../../../utils/dual-source-store';
+import { getMarketConsensusByCommodity } from '../../../data/mock/marketConsensus';
 
 type LocationType = 'pasar' | 'warung';
 
@@ -90,6 +91,16 @@ export default function LaporPage() {
 
     const generatedCode = 'TKT-20261024-' + Math.floor(1000 + Math.random() * 9000);
 
+    // Hitung kuorum dinamis untuk pasar & komoditas yang dilaporkan
+    const marketsData = getMarketConsensusByCommodity(selectedComm.id);
+    const targetMarket = marketsData.find(
+      (m) =>
+        m.namaPasar.toLowerCase() === locationLabel.toLowerCase() ||
+        m.regionId === activeRegion.id
+    );
+    const currentCount = targetMarket ? targetMarket.laporanValid + 1 : 1;
+    const isQuorumReached = currentCount >= 10;
+
     const existing = loadCitizenReports();
     saveCitizenReports([
       {
@@ -102,9 +113,9 @@ export default function LaporPage() {
         namaPasar: locationLabel,
         hargaWargaRp: numericPrice,
         hargaResmiRp: selectedComm.hargaAcuanRp || 45000,
-        jumlahLaporan: 10,
+        jumlahLaporan: currentCount,
         radiusKm: locationType === 'pasar' ? 1.8 : 2.4,
-        statusApproval: 'pending',
+        statusApproval: isQuorumReached ? 'approved' : 'pending',
         updatedAt: 'Baru saja dikirim warga',
       },
       ...existing,

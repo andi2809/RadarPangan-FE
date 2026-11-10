@@ -51,13 +51,23 @@ export function AffordabilityIndicator({
 
   const badge = statusStyle[effectiveLabel];
 
+  if (!hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center p-6 rounded-xl border border-[#DED8CD] bg-white shadow-sm text-center">
+        <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#24231F]">
+          Daya Beli &amp; Rasio Beban UMK
+        </h3>
+        <p className="mt-2 text-xs text-[#706B62]">
+          Data indikator daya beli belum tersedia untuk wilayah ini.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3.5 rounded-xl border border-[#DED8CD] bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2 border-b border-[#F0ECE4] pb-2.5">
         <div>
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-[#67151D]">
-            Blok 3 · Keterjangkauan Lokal
-          </span>
           <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#24231F]">
             Daya Beli &amp; Rasio Beban UMK
           </h3>
@@ -130,12 +140,11 @@ export function AffordabilityIndicator({
         <div className="rounded-lg border border-[#DED8CD] bg-[#FBF9F4] p-2.5 text-[10px] leading-relaxed text-[#706B62]">
           <div className="flex items-center gap-1 font-bold text-[#24231F]">
             <AlertCircle size={12} className="text-[#67151D]" />
-            <span>Rumus Beban UMK: (P̂_t+7 × K_acuan) / UMK</span>
+            <span>Kebutuhan Konsumsi Pangan Bulanan</span>
           </div>
           <p className="mt-0.5 font-mono">
-            Biaya {commodityBurden.kebutuhanAcuanKg} {unit}/bln: Rp{" "}
-            {commodityBurden.biayaKomoditasBulananRp.toLocaleString("id-ID")} · Pengganda kerentanan:{" "}
-            {commodityBurden.penggandaUmk}x thd rata-rata Jabar.
+            Estimasi alokasi {commodityBurden.kebutuhanAcuanKg} {unit}/bulan: Rp{" "}
+            {commodityBurden.biayaKomoditasBulananRp.toLocaleString("id-ID")}. Rasio keterjangkauan diselaraskan dengan standar UMK setempat.
           </p>
         </div>
       )}

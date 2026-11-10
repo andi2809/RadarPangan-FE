@@ -3,11 +3,9 @@ import Link from "next/link";
 import {
   TrendingUp,
   MapPin,
-  Truck,
-  Users,
   CheckCircle2,
   Clock,
-  Calculator,
+  Info,
 } from "lucide-react";
 import type { SupplyRoute } from "../../../types/domain";
 import type { MultiWindowAnalysis } from "../../../lib/engines/forecasting";
@@ -50,8 +48,23 @@ export function RegionInsightPanel({
   hasData = true,
   citizenReport = null,
   multiWindow = null,
-  supplyRoutes = [],
 }: Partial<RegionInsightPanelProps>) {
+  if (!hasData) {
+    return (
+      <aside className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+        <div className="w-12 h-12 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#64748B]">
+          <Info size={22} />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-[#24231F]">{region}</h3>
+          <p className="text-xs text-[#706B62] mt-1 max-w-[240px]">
+            Data harga untuk wilayah ini belum tersedia di basis data resmi Bapanas.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
   const isApprovedCitizen = citizenReport?.statusApproval === "approved";
   const citizenDiffPct =
     isApprovedCitizen && citizenReport && currentPrice > 0
@@ -63,8 +76,6 @@ export function RegionInsightPanel({
       ? (((forecastPrice - hargaAcuanRp) / hargaAcuanRp) * 100).toFixed(1)
       : null;
 
-  const primaryRoute = supplyRoutes[0];
-
   return (
     <aside className="space-y-4">
       {/* Header Wilayah & Status */}
@@ -73,7 +84,7 @@ export function RegionInsightPanel({
           <div>
             <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#67151D]">
               <MapPin size={13} />
-              Blok 2 · Komparasi Dual-Source
+              Ringkasan & Validasi Harga
             </div>
             <h2 className="mt-1 text-lg font-extrabold text-[#24231F]">{region}</h2>
             <p className="text-xs text-[#706B62]">
@@ -83,24 +94,24 @@ export function RegionInsightPanel({
 
           <span
             className={`rounded-md px-2.5 py-1 text-[10px] font-bold uppercase ${
-              hasData ? riskStyle[risk] : "bg-[#F1F5F9] text-[#64748B]"
+              riskStyle[risk]
             }`}
           >
-            {hasData ? risk : "TANPA DATA"}
+            {risk}
           </span>
         </div>
 
-        {/* Sandingan Non-Destructive: Harga Resmi Instansi vs Harga Laporan Warga Terverifikasi */}
+        {/* Sandingan: Harga Resmi Bapanas vs Harga Laporan Warga */}
         <div className="mt-3.5 grid grid-cols-2 gap-2.5">
           <div className="rounded-lg border border-[#DED8CD] bg-[#FFFDF7] p-2.5">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-[#706B62]">
-              Harga Resmi Instansi
+              Harga Resmi Bapanas
             </span>
             <p className="mt-1 font-mono text-base font-extrabold tabular-nums text-[#24231F]">
-              {hasData ? `${rupiah(currentPrice)}/${unit}` : "Belum tersedia"}
+              {rupiah(currentPrice)}/{unit}
             </p>
             <span className="mt-0.5 block text-[10px] text-[#898277]">
-              Survei Bapanas / PIHPS
+              Panel Harga Bapanas
             </span>
           </div>
 
@@ -150,31 +161,31 @@ export function RegionInsightPanel({
             ) : (
               <>
                 <p className="mt-1 font-mono text-xs font-semibold text-[#898277]">
-                  Belum ada kuorum
+                  Belum cukup laporan warga
                 </p>
                 <span className="mt-0.5 block text-[10px] text-[#898277]">
-                  Non-destructive pembanding
+                  Minimal butuh 10 laporan
                 </span>
               </>
             )}
           </div>
         </div>
 
-        {/* Proyeksi H+7 & Selisih terhadap HET/HAP */}
+        {/* Proyeksi H+7 Bersih Naratif (Tanpa Rumus Matematika Teknis) */}
         <div className="mt-2.5 rounded-lg border border-[#67151D]/20 bg-[#F4E8E9]/60 p-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#67151D]">
-              Proyeksi Harga H+7 (P̂_t+7)
+              Proyeksi Harga H+7
             </span>
             <span className="inline-flex items-center gap-1 font-mono text-xs font-bold tabular-nums text-[#B52D26]">
               <TrendingUp size={13} />
-              {hasData ? `${changePercent > 0 ? "+" : ""}${changePercent.toFixed(1)}% vs HET/HAP` : "—"}
+              {changePercent > 0 ? "+" : ""}{changePercent.toFixed(1)}% vs HAP
             </span>
           </div>
 
           <div className="mt-1 flex items-baseline justify-between">
             <p className="font-mono text-xl font-extrabold tabular-nums text-[#67151D]">
-              {hasData ? `${rupiah(forecastPrice)}/${unit}` : "—"}
+              {rupiah(forecastPrice)}/{unit}
             </p>
             {multiWindow ? (
               <span className="font-mono text-[10px] text-[#706B62]">
@@ -187,62 +198,10 @@ export function RegionInsightPanel({
             ) : null}
           </div>
 
-          {multiWindow && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[#DED8CD] pt-2 font-mono text-[10px] text-[#625E56]">
-              <Calculator size={11} className="text-[#67151D]" />
-              <span>
-                r={multiWindow.dailyRatePct > 0 ? `+${multiWindow.dailyRatePct}%` : `${multiWindow.dailyRatePct}%`}/hr
-              </span>
-              <span>·</span>
-              <span>M_musim={multiWindow.seasonalMultiplier.toFixed(2)}x</span>
-              <span>·</span>
-              <span>M_stok={multiWindow.stockMultiplier.toFixed(2)}x</span>
-            </div>
-          )}
-          <p className="mt-1.5 text-[10px] leading-4 text-[#898277]">
-            Prediksi H+7 dihitung dari riwayat harga resmi pemerintah. Laporan warga
-            hanya menjadi pembanding lapangan, bukan input rumus prediksi.
+          <p className="mt-2 text-[11px] leading-relaxed text-[#706B62] border-t border-[#DED8CD] pt-2">
+            Estimasi pergerakan harga 7 hari ke depan dihitung berdasarkan tren historis resmi Bapanas. Data laporan warga berperan sebagai pembanding lapangan independen.
           </p>
         </div>
-      </section>
-
-      {/* Rekomendasi Rute Distribusi Pasokan (Supply Matchmaker) */}
-      <section className="rounded-lg border border-[#287653]/30 bg-[#EAF2EA] p-3">
-        <div className="flex items-center justify-between">
-          <h3 className="flex items-center gap-1.5 text-xs font-bold text-[#287653]">
-            <Truck size={14} />
-            Rekomendasi Rute Distribusi
-          </h3>
-          <span className="rounded bg-white/80 px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#287653]">
-            Surplus → Defisit
-          </span>
-        </div>
-
-        {primaryRoute ? (
-          <div className="mt-2 space-y-1.5 text-xs">
-            <p className="font-bold text-[#24231F]">
-              Tarik pasokan dari <span className="text-[#287653]">{primaryRoute.sourceRegionName}</span>
-            </p>
-            <div className="grid grid-cols-3 gap-1.5 rounded bg-white/80 p-2 font-mono text-[10px] text-[#24231F]">
-              <div>
-                <span className="block text-[9px] text-[#706B62]">Jarak</span>
-                <strong>{primaryRoute.jarakKm} km</strong>
-              </div>
-              <div>
-                <span className="block text-[9px] text-[#706B62]">Waktu</span>
-                <strong>~{primaryRoute.estimasiWaktuJam} jam</strong>
-              </div>
-              <div>
-                <span className="block text-[9px] text-[#706B62]">Surplus</span>
-                <strong>{primaryRoute.surplusAvailableTon} ton</strong>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-1.5 text-[11px] leading-relaxed text-[#4D6655]">
-            Pasokan wilayah terpantau kondusif atau wilayah ini merupakan sentra pemasok surplus bagi daerah sekitar.
-          </p>
-        )}
       </section>
     </aside>
   );
