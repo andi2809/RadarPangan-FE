@@ -37,12 +37,8 @@ function checkWebGLSupport(): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const canvas = document.createElement('canvas');
-    const gl2 = canvas.getContext('webgl2');
-    if (!gl2) return false;
-    if (typeof (maplibregl as unknown as { supported?: (options?: unknown) => boolean }).supported === 'function') {
-      return (maplibregl as unknown as { supported: (options?: unknown) => boolean }).supported({ failIfMajorPerformanceCaveat: false });
-    }
-    return true;
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    return !!gl;
   } catch {
     return false;
   }
