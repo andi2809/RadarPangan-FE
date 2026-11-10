@@ -250,7 +250,7 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
           </div>
 
           {/* Map Preview Graphic Area (Dynamic MapLibre with Indonesia Boundaries & Jabar Risk Telemetry) */}
-          <div className="relative my-3 flex-1 flex flex-col bg-slate-950 rounded-xl overflow-hidden border border-slate-800 min-h-[380px]">
+          <div className="relative my-3 flex-1 flex flex-col bg-[#EAE8E1] rounded-xl overflow-hidden border border-[#E5E2DA] min-h-[380px]">
             <MapCanvas
               geoJson={geoJson || null}
               allTelemetry={allTelemetry}
@@ -258,7 +258,7 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
               selectedRegionId={selectedRegionId}
               onSelectRegion={onSelectRegion}
               mode="preview"
-              className="relative w-full h-[380px] rounded-xl overflow-hidden bg-slate-950"
+              className="relative w-full h-[380px] rounded-xl overflow-hidden bg-[#EAE8E1]"
               onOpenCommandCenter={onOpenCommandCenter}
             />
           </div>

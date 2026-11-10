@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Commodity } from '../../../types/domain';
-import { ArrowLeft, ChevronDown, Calendar, Layers, ShieldCheck } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import Link from 'next/link';
 
 interface FloatingTopBarProps {
   commodities: Commodity[];
@@ -11,6 +12,7 @@ interface FloatingTopBarProps {
   activeHorizon: 'aktual' | 'h7';
   onChangeHorizon: (horizon: 'aktual' | 'h7') => void;
   onBackToOverview: () => void;
+  lastUpdatedDate?: string;
 }
 
 export const FloatingTopBar: React.FC<FloatingTopBarProps> = ({
@@ -19,85 +21,93 @@ export const FloatingTopBar: React.FC<FloatingTopBarProps> = ({
   onSelectCommodity,
   activeHorizon,
   onChangeHorizon,
-  onBackToOverview
+  onBackToOverview,
+  lastUpdatedDate = '24 Okt 2026, 09:27 WIB',
 }) => {
   return (
-    <div className="absolute top-4 left-4 right-4 z-40 pointer-events-none select-none">
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/95 border border-slate-700/80 rounded-2xl px-4 py-2.5 shadow-2xl backdrop-blur-md pointer-events-auto">
-        {/* Left: Back to Overview & Title */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBackToOverview}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors shadow-sm"
+    <header className="absolute top-0 left-0 right-0 z-40 h-16 bg-[#F5F3ED]/95 border-b border-[#E5E2DA] px-4 md:px-6 shadow-sm backdrop-blur-sm select-none">
+      <div className="h-full max-w-[1920px] mx-auto flex items-center justify-between gap-4">
+        {/* Kiri: RADAR PANGAN | GIS Command Center 27 Kab/Kota Jawa Barat */}
+        <div className="flex items-center gap-3 shrink-0">
+          <Link
+            href="/dashboard"
+            onClick={(e) => {
+              e.preventDefault();
+              onBackToOverview();
+            }}
+            className="font-black text-sm tracking-wider text-[#791D2A] hover:opacity-80 transition-opacity"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Kembali ke Ringkasan Dashboard</span>
-          </button>
+            RADAR PANGAN
+          </Link>
 
-          <span className="w-px h-5 bg-slate-700 hidden sm:block" />
+          <span className="w-px h-5 bg-[#E5E2DA]" />
 
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm text-white tracking-tight">
-              GIS COMMAND CENTER
-            </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-bold hidden md:inline-block">
-              27 KAB/KOTA JABAR
+          <div className="flex items-baseline gap-2">
+            <h1 className="font-bold text-sm text-[#292824] tracking-tight">
+              GIS Command Center
+            </h1>
+            <span className="text-xs text-[#77746C] hidden md:inline">
+              27 Kab/Kota Jawa Barat
             </span>
           </div>
         </div>
 
-        {/* Center: Filters */}
-        <div className="flex items-center gap-3">
-          {/* Commodity Dropdown */}
+        {/* Tengah: Dropdown komoditas & Horizon Switcher */}
+        <div className="flex items-center gap-2.5">
+          {/* Dropdown Pemilihan Komoditas */}
           <div className="relative">
             <select
               value={selectedCommodity.id}
               onChange={(e) => onSelectCommodity(e.target.value)}
-              className="appearance-none bg-slate-800 border border-slate-600 text-white text-xs font-medium rounded-xl pl-3 pr-8 py-1.5 cursor-pointer focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="appearance-none bg-white border border-[#E5E2DA] text-[#292824] text-xs font-medium rounded-lg pl-3 pr-8 py-2 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#791D2A] shadow-2xs max-w-[210px] sm:max-w-xs truncate"
             >
-              {commodities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} (HAP Rp {c.hargaAcuanRp.toLocaleString('id-ID')})
-                </option>
-              ))}
+              {commodities.map((c) => {
+                const acuanLabel = c.jenisAcuan || 'HAP';
+                return (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({acuanLabel} Rp {c.hargaAcuanRp.toLocaleString('id-ID')})
+                  </option>
+                );
+              })}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-2.5 pointer-events-none text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-3 pointer-events-none text-[#77746C]" />
           </div>
 
-          {/* Time Horizon Switcher */}
-          <div className="flex bg-slate-950/80 p-0.5 rounded-xl border border-slate-700">
+          {/* Horizon Selector (Hari Ini / H+7) */}
+          <div className="flex bg-[#EAE8E1] p-0.5 rounded-lg border border-[#E5E2DA]">
             <button
+              type="button"
               onClick={() => onChangeHorizon('aktual')}
-              className={`px-3 py-1 text-xs font-mono font-semibold rounded-lg transition-all ${
+              className={`px-3 py-1.5 text-xs font-mono font-medium rounded-md transition-colors ${
                 activeHorizon === 'aktual'
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#791D2A] text-white font-bold shadow-2xs'
+                  : 'text-[#77746C] hover:text-[#292824]'
               }`}
             >
               Hari Ini
             </button>
             <button
+              type="button"
               onClick={() => onChangeHorizon('h7')}
-              className={`px-3 py-1 text-xs font-mono font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-xs font-mono font-medium rounded-md transition-colors flex items-center gap-1.5 ${
                 activeHorizon === 'h7'
-                  ? 'bg-rose-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#791D2A] text-white font-bold shadow-2xs'
+                  : 'text-[#77746C] hover:text-[#292824]'
               }`}
             >
               <span>H+7</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             </button>
           </div>
         </div>
 
-        {/* Right Status Badge */}
-        <div className="hidden lg:flex items-center gap-2">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-xl border border-emerald-800/80">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Koneksi Real-time Telemetri</span>
-          </div>
+        {/* Kanan: Pembaruan Bapanas (Tanpa badge SP2KP) */}
+        <div className="hidden lg:flex items-center text-xs text-[#77746C]">
+          <span>
+            Pembaruan Bapanas:{' '}
+            <strong className="text-[#292824] font-medium font-mono">{lastUpdatedDate}</strong>
+          </span>
         </div>
       </div>
-    </div>
+    </header>
   );
 };

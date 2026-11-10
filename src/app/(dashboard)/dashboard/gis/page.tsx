@@ -60,7 +60,7 @@ export default function FullGISCommandCenterPage() {
   }, [router]);
 
   return (
-    <main className="w-screen h-screen overflow-hidden bg-slate-950">
+    <main className="w-screen h-screen overflow-hidden bg-[#F5F3ED]">
       <GisCommandCenter
         geoJson={geoJson}
         allTelemetry={allTelemetry}

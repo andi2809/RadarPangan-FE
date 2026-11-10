@@ -2,36 +2,31 @@ import React from "react";
 
 const legend = [
   {
-    color: "#4B9D73",
-    title: "Aman",
-    range: "±5%",
+    color: "#729B82",
+    title: "Normal",
+    range: "≤ +5% acuan",
   },
   {
-    color: "#F0C94D",
-    title: "Waspada",
+    color: "#D6B45F",
+    title: "Perlu Perhatian",
     range: "+5% s.d. +10%",
   },
   {
-    color: "#E85B4F",
-    title: "Kritis / Defisit",
-    range: "> +10%",
+    color: "#B85C52",
+    title: "Tekanan Tinggi",
+    range: "> +10% acuan",
   },
   {
-    color: "#0369A1",
-    title: "Turun / Surplus",
-    range: "< −5%",
-  },
-  {
-    color: "#CBD5E1",
+    color: "#D5D5D0",
     title: "Tidak ada data",
-    range: "N/A",
+    range: "Belum tersedia",
   },
 ];
 
 export function GISMapLegend() {
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <span className="text-xs font-bold uppercase tracking-wide text-[#706B62]">
+      <span className="text-xs font-bold uppercase tracking-wide text-[#77746C]">
         Tingkat Risiko
       </span>
 
@@ -43,8 +38,8 @@ export function GISMapLegend() {
           />
 
           <div>
-            <p className="text-xs font-semibold text-[#24231F]">{item.title}</p>
-            <p className="text-[10px] text-[#898277]">
+            <p className="text-xs font-semibold text-[#292824]">{item.title}</p>
+            <p className="text-[10px] text-[#77746C]">
               {item.range}
             </p>
           </div>

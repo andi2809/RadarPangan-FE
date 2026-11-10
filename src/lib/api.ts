@@ -351,3 +351,95 @@ export async function getMetaKonsistensi(): Promise<EnvelopeResponse<MetaKonsist
     ],
   };
 }
+
+/**
+ * 8. GET /api/v1/laporan-warga/sekitar?lat=..&lng=..&radius_km=..
+ * Dipakai komponen Distribusi Harga Laporan Warga.
+ * Dilengkapi dengan failure cooldown agar tidak spamming fetch saat backend offline,
+ * serta penanganan AbortSignal bersih tanpa melempar warning palsu saat unmount/cancel.
+ */
+let lastLaporanWargaFailure = 0;
+let cachedMockReports: import('./citizen-distribution').CitizenReportApiItem[] | null = null;
+const FAILURE_COOLDOWN_MS = 30000;
+
+export async function getLaporanWargaSekitar(
+  params: { lat: number; lng: number; radiusKm: number },
+  signal?: AbortSignal,
+  forceRefresh: boolean = false
+): Promise<EnvelopeResponse<import('./citizen-distribution').CitizenReportApiItem[]>> {
+  // 1. Jika caller sudah membatalkan request sebelum dimulai, langsung throw AbortError tanpa log apapun
+  if (signal?.aborted) {
+    throw new DOMException('The user aborted a request.', 'AbortError');
+  }
+
+  // 2. Jika baru saja gagal (server offline / 500) dan fallback mock aktif, gunakan fallback cache
+  // tanpa spamming request jaringan ke backend yang sedang down (kecuali forceRefresh = true)
+  const isWithinCooldown = Date.now() - lastLaporanWargaFailure < FAILURE_COOLDOWN_MS;
+  if (!forceRefresh && isWithinCooldown && process.env.NEXT_PUBLIC_ENABLE_MOCK_FALLBACK === 'true') {
+    if (!cachedMockReports) {
+      const { generateMockCitizenReports } = await import('./citizen-distribution');
+      cachedMockReports = generateMockCitizenReports();
+    }
+    return {
+      ok: true,
+      data: cachedMockReports,
+      meta: {
+        mode_data: 'fallback-cache',
+        sumber: ['Laporan Warga (arsip/konsensus)'],
+      },
+    };
+  }
+
+  const url = `${API_BASE_URL}/api/v1/laporan-warga/sekitar?lat=${params.lat}&lng=${params.lng}&radius_km=${params.radiusKm}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener('abort', onAbort);
+
+  try {
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json || !Array.isArray(json.data)) throw new Error('Format respons tidak valid');
+    // Sukses: reset cooldown
+    lastLaporanWargaFailure = 0;
+    return json;
+  } catch (err: any) {
+    // 3. Jika dibatalkan oleh caller (unmount / navigasi / filter change), jangan log error/fallback
+    if (signal?.aborted) {
+      throw err;
+    }
+
+    // Catat waktu kegagalan untuk cooldown
+    lastLaporanWargaFailure = Date.now();
+
+    // 4. Graceful Fallback Mock
+    if (process.env.NEXT_PUBLIC_ENABLE_MOCK_FALLBACK === 'true') {
+      const isTimeout = !signal?.aborted && controller.signal.aborted;
+      if (isTimeout) {
+        console.warn('[API Client] Laporan Warga Sekitar timeout (8s), using mock fallback');
+      } else {
+        console.warn('[API Client] Laporan Warga Sekitar backend offline, using mock fallback:', err?.message || err);
+      }
+
+      if (!cachedMockReports) {
+        const { generateMockCitizenReports } = await import('./citizen-distribution');
+        cachedMockReports = generateMockCitizenReports();
+      }
+
+      return {
+        ok: true,
+        data: cachedMockReports,
+        meta: {
+          mode_data: 'fallback-cache',
+          sumber: ['Laporan Warga (arsip/konsensus)'],
+        },
+      };
+    }
+
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', onAbort);
+  }
+}

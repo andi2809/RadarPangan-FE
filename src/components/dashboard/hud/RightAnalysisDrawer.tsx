@@ -1,25 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
-import { UnifiedRegionTelemetry, Commodity, SupplyRoute } from '../../../types/domain';
-import {
-  X,
-  TrendingUp,
-  AlertTriangle,
-  ShieldCheck,
-  CheckCircle2,
-  Truck,
-  ArrowUpRight,
-  Maximize2
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { UnifiedRegionTelemetry, Commodity } from '../../../types/domain';
+import { getMarketConsensusForRegion } from '../../../data/mock/marketConsensus';
+import { CitizenReportPriceDistribution } from '../../gis/citizen-distribution/CitizenReportPriceDistribution';
+import { X, CheckCircle2 } from 'lucide-react';
 
 interface RightAnalysisDrawerProps {
   telemetry: UnifiedRegionTelemetry | null;
   selectedCommodity: Commodity;
   activeHorizon: 'aktual' | 'h7';
   onClose: () => void;
-  onActivateRoute: () => void;
-  isRouteActive: boolean;
+  isOpen?: boolean;
 }
 
 export const RightAnalysisDrawer: React.FC<RightAnalysisDrawerProps> = ({
@@ -27,206 +19,330 @@ export const RightAnalysisDrawer: React.FC<RightAnalysisDrawerProps> = ({
   selectedCommodity,
   activeHorizon,
   onClose,
-  onActivateRoute,
-  isRouteActive
+  isOpen = true,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'ringkasan' | 'harga' | 'tren' | 'distribusi' | 'rekomendasi'>('ringkasan');
+  const [activeTab, setActiveTab] = useState<'ringkasan' | 'riwayat'>('ringkasan');
+  const [historyPeriod, setHistoryPeriod] = useState<14 | 30 | 60>(14);
 
-  if (!telemetry) return null;
+  const consensus = useMemo(() => {
+    if (!telemetry) return undefined;
+    return getMarketConsensusForRegion(telemetry.region.id, telemetry.region.name);
+  }, [telemetry]);
 
-  const { region, currentPrice, predictionH7, supply, affordability } = telemetry;
+  const bapanasPriceProp = useMemo(() => {
+    if (!telemetry?.currentPrice) return null;
+    return {
+      price: telemetry.currentPrice.hargaAktualRp,
+      dateLabel: '24 Okt 2026',
+      isToday: true,
+    };
+  }, [telemetry?.currentPrice?.hargaAktualRp]);
+
+  const history14d = telemetry?.history14d;
+  const historySeries = useMemo(() => {
+    if (!history14d || history14d.length === 0) return [];
+    if (historyPeriod === 14) return history14d;
+
+    const baseData = [...history14d];
+    const firstPoint = baseData[0];
+    const needed = historyPeriod - baseData.length;
+    const extended: { date: string; hargaRp: number }[] = [];
+
+    const startDate = new Date(firstPoint.date);
+    for (let i = needed; i >= 1; i--) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() - i);
+      const iso = d.toISOString().split('T')[0];
+      const variation = Math.round(Math.sin(i * 0.4) * 450);
+      extended.push({
+        date: iso,
+        hargaRp: Math.max(10000, firstPoint.hargaRp - variation),
+      });
+    }
+
+    return [...extended, ...baseData];
+  }, [history14d, historyPeriod]);
+
+  if (!isOpen || !telemetry) return null;
+
+  const { region, currentPrice, predictionH7 } = telemetry;
   const isH7 = activeHorizon === 'h7';
+  const displayPrice = isH7 ? predictionH7.hargaPrediksiH7Rp : currentPrice.hargaAktualRp;
+  const acuanRp = selectedCommodity.hargaAcuanRp || currentPrice.hargaAcuanRp || 45000;
+  const acuanType = selectedCommodity.jenisAcuan || 'HAP';
+
+  const deviasiNominalRp = displayPrice - acuanRp;
+  const deviasiPct = Number(((deviasiNominalRp / acuanRp) * 100).toFixed(2));
+
+  // Kategori EWS
+  let statusKondisi = 'Normal';
+  let badgeColor = 'bg-[#729B82]/15 text-[#39634B] border-[#729B82]/30';
+  if (deviasiPct > 10 || currentPrice.status === 'kritis') {
+    statusKondisi = 'Tekanan Tinggi';
+    badgeColor = 'bg-[#B85C52]/15 text-[#8A372E] border-[#B85C52]/30';
+  } else if (deviasiPct > 5 || currentPrice.status === 'waspada') {
+    statusKondisi = 'Perlu Perhatian';
+    badgeColor = 'bg-[#FEF08A] text-[#854D0E] border-[#FDE047]';
+  }
+
+  // Calculations for History Chart SVG
+  const chartMin = Math.min(...historySeries.map((d) => d.hargaRp), acuanRp, predictionH7.confidenceLowerRp);
+  const chartMax = Math.max(...historySeries.map((d) => d.hargaRp), acuanRp, predictionH7.confidenceUpperRp);
+  const chartRange = Math.max(1, chartMax - chartMin);
+  const chartW = 300;
+  const chartH = 130;
+  const padT = 15;
+  const padB = 22;
+  const padL = 36;
+  const padR = 15;
+  const innerW = chartW - padL - padR;
+  const innerH = chartH - padT - padB;
+
+  const getY = (val: number) => padT + innerH - ((val - chartMin) / chartRange) * innerH;
+
+  const pointsString = historySeries
+    .map((d, idx) => {
+      const x = padL + (idx / Math.max(1, historySeries.length - 1)) * (innerW - 20);
+      const y = getY(d.hargaRp);
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  const lastHistoryX = padL + innerW - 20;
+  const lastHistoryY = getY(historySeries[historySeries.length - 1]?.hargaRp || displayPrice);
+  const forecastX = padL + innerW;
+  const forecastY = getY(predictionH7.hargaPrediksiH7Rp);
 
   return (
-    <aside className="absolute top-20 right-4 bottom-64 z-30 w-96 max-w-[calc(100vw-32px)] bg-slate-900/95 border border-slate-700/80 rounded-2xl p-4 shadow-2xl backdrop-blur-md overflow-y-auto select-none text-slate-200 pointer-events-auto">
-      {/* Header */}
-      <div className="flex items-start justify-between border-b border-slate-800 pb-3 mb-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-white tracking-tight">{region.name}</h2>
-            <span
-              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase ${
-                currentPrice.status === 'kritis'
-                  ? 'bg-rose-950 text-rose-300 border-rose-800'
-                  : currentPrice.status === 'waspada'
-                  ? 'bg-amber-950 text-amber-300 border-amber-800'
-                  : 'bg-emerald-950 text-emerald-300 border-emerald-800'
-              }`}
-            >
-              {currentPrice.status === 'kritis' ? 'Rentan' : currentPrice.status}
-            </span>
+    <aside className="absolute top-20 right-4 bottom-4 z-30 w-[368px] max-w-[calc(100vw-32px)] flex flex-col gap-3 overflow-y-auto no-scrollbar pointer-events-auto select-none text-[#292824]">
+      {/* ================= CARD 1: DETAIL & ANALISIS WILAYAH ================= */}
+      <div className="bg-white/95 border border-[#E5E2DA] rounded-2xl shadow-xl backdrop-blur-sm flex flex-col shrink-0 overflow-hidden">
+        {/* Header Wilayah */}
+        <div className="p-3 border-b border-[#E5E2DA] flex items-start justify-between gap-2 shrink-0">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-bold text-base text-[#292824] tracking-tight">{region.name}</h2>
+              <span
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeColor}`}
+              >
+                {statusKondisi}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#77746C] mt-0.5">
+              Provinsi Jawa Barat &bull; UMK Rp {region.umk2026.toLocaleString('id-ID')}
+            </p>
           </div>
-          <div className="text-xs text-slate-400 mt-0.5">
-            Jawa Barat &bull; UMK Rp {region.umk2026.toLocaleString('id-ID')}
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-          title="Tutup Panel"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
 
-      {/* Mini Sub-Tabs Header */}
-      <div className="flex items-center gap-1 border-b border-slate-800/80 pb-2 mb-3 text-[11px] font-mono text-slate-400">
-        {(['ringkasan', 'harga', 'tren', 'distribusi', 'rekomendasi'] as const).map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveSubTab(tab)}
-            className={`px-2 py-0.5 rounded capitalize transition-colors ${
-              activeSubTab === tab
-                ? 'bg-slate-800 text-white font-bold'
-                : 'hover:text-slate-200'
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg text-[#77746C] hover:text-[#292824] hover:bg-[#F5F3ED] transition-colors"
+            title="Tutup Panel Detail"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Tab Navigasi: Ringkasan & Riwayat Harga */}
+        <div className="grid grid-cols-2 border-b border-[#E5E2DA] text-[11px] font-medium text-[#77746C] shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('ringkasan')}
+            className={`py-2 text-center transition-colors border-b-2 ${
+              activeTab === 'ringkasan'
+                ? 'border-[#791D2A] text-[#791D2A] font-bold'
+                : 'border-transparent hover:text-[#292824]'
             }`}
           >
-            {tab}
+            Ringkasan
           </button>
-        ))}
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('riwayat')}
+            className={`py-2 text-center transition-colors border-b-2 ${
+              activeTab === 'riwayat'
+                ? 'border-[#791D2A] text-[#791D2A] font-bold'
+                : 'border-transparent hover:text-[#292824]'
+            }`}
+          >
+            Riwayat Harga
+          </button>
+        </div>
+
+        {/* Konten Tab */}
+        <div className="p-3 space-y-2.5 font-sans text-xs">
+          {/* TAB 1: RINGKASAN */}
+          {activeTab === 'ringkasan' && (
+            <div className="space-y-2.5">
+              {/* Box 1 & 2: Harga Bapanas & Estimasi H+7 */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-xl bg-[#F5F3ED] border border-[#E5E2DA]">
+                  <div className="text-[10px] text-[#77746C] mb-0.5">Harga Bapanas</div>
+                  <div className="text-sm font-bold font-mono text-[#292824]">
+                    Rp {currentPrice.hargaAktualRp.toLocaleString('id-ID')}
+                  </div>
+                  <div className="text-[10px] text-[#77746C]">/{selectedCommodity.satuan || 'kg'}</div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#F5F3ED] border border-[#E5E2DA]">
+                  <div className="text-[10px] text-[#77746C] mb-0.5">Estimasi H+7</div>
+                  <div className="text-sm font-bold font-mono text-[#791D2A]">
+                    Rp {predictionH7.hargaPrediksiH7Rp.toLocaleString('id-ID')}
+                  </div>
+                  <div className="text-[10px] font-mono text-[#791D2A]">
+                    ({predictionH7.selisihPersen > 0 ? '+' : ''}{predictionH7.selisihPersen}%)
+                  </div>
+                </div>
+              </div>
+
+              {/* Deviasi terhadap Acuan */}
+              <div className="p-2.5 rounded-xl bg-white border border-[#E5E2DA]">
+                <div className="flex items-center justify-between text-[11px] text-[#77746C] mb-1">
+                  <span>Deviasi terhadap Acuan ({acuanType})</span>
+                  <span className="font-mono text-[10px]">Rp {acuanRp.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <span
+                    className={`text-base font-bold font-mono ${
+                      deviasiPct > 10
+                        ? 'text-[#B85C52]'
+                        : deviasiPct > 5
+                        ? 'text-[#B85C52]'
+                        : 'text-[#39634B]'
+                    }`}
+                  >
+                    {deviasiPct > 0 ? `+${deviasiPct}%` : `${deviasiPct}%`}
+                  </span>
+                  <span className="text-[11px] font-mono text-[#77746C]">
+                    {deviasiNominalRp >= 0
+                      ? `+Rp ${deviasiNominalRp.toLocaleString('id-ID')}`
+                      : `-Rp ${Math.abs(deviasiNominalRp).toLocaleString('id-ID')}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Konsensus Harga Warga & Kuorum */}
+              <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-white border border-[#E5E2DA]">
+                <div>
+                  <div className="text-[10px] text-[#77746C] mb-0.5">Konsensus Warga</div>
+                  <div className="text-xs font-bold font-mono text-[#292824]">
+                    {consensus?.statusKuorum === 'tercapai' && consensus.hargaWargaRp ? (
+                      `Rp ${consensus.hargaWargaRp.toLocaleString('id-ID')}/kg`
+                    ) : (
+                      <span className="text-[11px] text-[#77746C] font-normal italic">
+                        Menunggu Kuorum
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-[10px] text-[#77746C] mb-0.5">Kuorum 10 Lap.</div>
+                  <div className="text-xs font-bold font-mono text-[#292824] flex items-center justify-end gap-1">
+                    <span>{consensus?.laporanValid ?? 0} / 10</span>
+                    {(consensus?.laporanValid ?? 0) >= 10 ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#729B82]" />
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#D6B45F]" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Ketahanan Wilayah */}
+              <div className="p-2.5 rounded-xl bg-white border border-[#E5E2DA] space-y-1">
+                <div className="flex items-center justify-between text-[11px] text-[#77746C]">
+                  <span>Ketahanan Wilayah</span>
+                  <span className="font-bold text-xs text-[#292824] font-mono">62%</span>
+                </div>
+                <div className="w-full h-1.5 bg-[#EAE8E1] rounded-full overflow-hidden">
+                  <div className="h-full bg-[#729B82] rounded-full" style={{ width: '62%' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: RIWAYAT HARGA */}
+          {activeTab === 'riwayat' && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-[#77746C]">Rentang:</span>
+                <div className="flex bg-[#EAE8E1] p-0.5 rounded-lg border border-[#E5E2DA] text-xs">
+                  {([14, 30, 60] as const).map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setHistoryPeriod(days)}
+                      className={`px-2 py-0.5 rounded font-mono text-[10px] transition-colors ${
+                        historyPeriod === days
+                          ? 'bg-[#791D2A] text-white font-bold'
+                          : 'text-[#77746C] hover:text-[#292824]'
+                      }`}
+                    >
+                      {days}H
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#F5F3ED] border border-[#E5E2DA] rounded-xl p-2">
+                <div className="w-full h-28 relative">
+                  <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-full overflow-visible">
+                    <line
+                      x1={padL}
+                      y1={getY(acuanRp)}
+                      x2={chartW - padR}
+                      y2={getY(acuanRp)}
+                      stroke="#77746C"
+                      strokeWidth="1"
+                      strokeDasharray="3,3"
+                    />
+                    <polyline
+                      fill="none"
+                      stroke="#292824"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      points={pointsString}
+                    />
+                    <line
+                      x1={lastHistoryX}
+                      y1={lastHistoryY}
+                      x2={forecastX}
+                      y2={forecastY}
+                      stroke="#791D2A"
+                      strokeWidth="2"
+                      strokeDasharray="3,3"
+                      strokeLinecap="round"
+                    />
+                    <circle cx={lastHistoryX} cy={lastHistoryY} r="3" fill="#292824" />
+                    <circle cx={forecastX} cy={forecastY} r="3.5" fill="#791D2A" />
+                  </svg>
+                </div>
+
+                <div className="flex items-center justify-between text-[9px] text-[#77746C] font-mono border-t border-[#E5E2DA] pt-1.5 mt-1">
+                  <span>- Observasi</span>
+                  <span className="text-[#791D2A]">--- H+7</span>
+                  <span>-- Acuan</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Status & Risiko Section */}
-      <div className="space-y-3">
-        <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">
-          Status & Risiko Wilayah
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-lg font-bold font-mono text-white tabular-nums">
-                {affordability.umkRatioBasketPercent}%
-              </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-800 font-bold uppercase">
-                Tinggi
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-400">Beban terhadap UMK</div>
-          </div>
-
-          <div className="text-right">
-            <div className="flex items-center justify-end gap-1 mb-1">
-              <span className="text-sm font-bold font-mono text-rose-400 tabular-nums">
-                Rp {predictionH7.hargaPrediksiH7Rp.toLocaleString('id-ID')}/kg
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-400 font-mono">
-              Prediksi H+7 ({predictionH7.selisihPersen > 0 ? '+' : ''}{predictionH7.selisihPersen}%)
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Harga Komoditas Section */}
-      <div className="space-y-2 pt-3 border-t border-slate-800/80">
-        <div className="flex justify-between items-center text-[11px] font-mono">
-          <span className="text-slate-400 font-bold uppercase">Harga {selectedCommodity.name}</span>
-          <span className="text-white font-bold tabular-nums">
-            Rp {currentPrice.hargaAktualRp.toLocaleString('id-ID')}/kg
-          </span>
-        </div>
-
-        <div className="flex justify-between items-center text-xs text-slate-400 font-mono">
-          <span>Rata-rata Jawa Barat:</span>
-          <span className="text-slate-200 font-semibold tabular-nums">
-            Rp 68.400/kg <span className="text-rose-400 font-bold">(+5,2%)</span>
-          </span>
-        </div>
-
-        {/* Mini sparkline */}
-        <div className="w-full h-8 bg-slate-950/50 rounded-lg p-1 border border-slate-800 flex items-center justify-center">
-          <svg viewBox="0 0 100 24" className="w-full h-full overflow-visible">
-            <polyline
-              fill="none"
-              stroke="#DC2626"
-              strokeWidth="2"
-              strokeLinecap="round"
-              points="0,18 20,16 40,14 60,15 80,10 100,6"
-            />
-            <circle cx="100" cy="6" r="3" fill="#DC2626" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Ketahanan Wilayah (Donut Gauge) */}
-      <div className="space-y-2 pt-3 border-t border-slate-800/80">
-        <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">
-          Ketahanan Wilayah
-        </div>
-
-        <div className="flex items-center gap-3 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          {/* Donut SVG */}
-          <div className="relative w-14 h-14 shrink-0">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-              <path
-                className="text-slate-800"
-                strokeWidth="3.8"
-                stroke="currentColor"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-              <path
-                className="text-emerald-500"
-                strokeDasharray="62.4, 100"
-                strokeWidth="3.8"
-                strokeLinecap="round"
-                stroke="currentColor"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-[10px] text-white">
-              62%
-            </div>
-          </div>
-
-          <div className="flex-1 space-y-1 font-mono text-[10px]">
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Terkendali</span>
-              </span>
-              <span className="text-white font-bold">62,4%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>Waspada</span>
-              </span>
-              <span className="text-white font-bold">24,8%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <span className="w-2 h-2 rounded-full bg-rose-500" />
-                <span>Rentan</span>
-              </span>
-              <span className="text-rose-400 font-bold">12,8%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Rekomendasi Aksi Intervensi */}
-      <div className="mt-3.5 bg-emerald-950/40 border border-emerald-600/50 rounded-xl p-3 space-y-2">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-          <ShieldCheck className="w-4 h-4" />
-          <span>Rekomendasi Aksi TPID</span>
-        </div>
-        <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-          Distribusikan cadangan <strong>8 Ton dari Kab. Garut (Surplus)</strong> ke <strong>{region.name}</strong> untuk menekan lonjakan harga.
-        </p>
-        <button
-          onClick={onActivateRoute}
-          className={`w-full py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-all ${
-            isRouteActive
-              ? 'bg-emerald-600 hover:bg-emerald-500 text-white ring-2 ring-emerald-400/50'
-              : 'bg-emerald-700 hover:bg-emerald-600 text-white'
-          }`}
-        >
-          <Truck className="w-3.5 h-3.5" />
-          <span>{isRouteActive ? '✓ Rute Distribusi Aktif di Peta' : 'Buat Rute Distribusi →'}</span>
-        </button>
+      {/* ================= CARD 2: DISTRIBUSI HARGA LAPORAN WARGA ================= */}
+      <div className="bg-white/95 border border-[#E5E2DA] rounded-2xl shadow-xl backdrop-blur-sm p-3.5 shrink-0 pointer-events-auto">
+        <CitizenReportPriceDistribution
+          regionId={region.id}
+          regionName={region.name}
+          regionCentroid={region.centroid || null}
+          commodity={selectedCommodity}
+          embedded={true}
+          height={85}
+          bapanasPrice={bapanasPriceProp}
+        />
       </div>
     </aside>
   );
