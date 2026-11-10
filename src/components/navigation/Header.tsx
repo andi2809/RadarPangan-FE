@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ActiveScreen } from '../../types/domain';
 import { getCurrentSession, clearSession, SsoUser } from '../../lib/auth';
 import { Search, Bell, User, ExternalLink, ShieldCheck, LogOut, Home, ChevronDown } from 'lucide-react';
+import { RadarPanganLogo } from '@/components/brand/RadarPanganLogo';
 
 interface HeaderProps {
   activeScreen: ActiveScreen;
@@ -47,8 +48,8 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Left: Breadcrumbs & Context Title */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-          <Link href="/" className="hover:text-sky-600 transition-colors flex items-center gap-1">
-            <Home className="w-3.5 h-3.5" />
+          <Link href="/" className="hover:text-sky-600 transition-colors flex items-center gap-1.5 font-bold">
+            <RadarPanganLogo size={16} />
             <span className="hidden sm:inline">Radar Pangan</span>
           </Link>
           <span>/</span>

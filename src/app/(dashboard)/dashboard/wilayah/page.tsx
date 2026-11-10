@@ -41,34 +41,10 @@ type SortField =
 
 function getHistoricalSeries(
   history14: { date: string; hargaRp: number }[],
-  days: 14 | 30 | 60
+  days: number = 7
 ) {
-  if (days === 14 || history14.length < 2) return history14;
-
-  const neededExtra = days - history14.length;
-  if (neededExtra <= 0) return history14.slice(-days);
-
-  const firstDate = new Date(history14[0].date);
-  const firstPrice = history14[0].hargaRp;
-  const lastPrice = history14[history14.length - 1].hargaRp;
-  const overallTrend = (lastPrice - firstPrice) / Math.max(1, history14.length);
-
-  const extraPoints: { date: string; hargaRp: number }[] = [];
-  for (let i = neededExtra; i >= 1; i--) {
-    const d = new Date(firstDate);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
-    // Smooth deterministic variance
-    const daySeed = d.getDate() * 19 + d.getMonth() * 37;
-    const wave = Math.sin(daySeed) * (firstPrice * 0.012);
-    const simulatedPrice = Math.round(firstPrice - overallTrend * 0.65 * i + wave);
-    extraPoints.push({
-      date: dateStr,
-      hargaRp: Math.max(1000, simulatedPrice),
-    });
-  }
-
-  return [...extraPoints, ...history14];
+  if (history14.length <= days) return history14;
+  return history14.slice(-days);
 }
 
 export default function WilayahDanRiwayatPage() {
@@ -82,8 +58,8 @@ export default function WilayahDanRiwayatPage() {
   // Filters state matching reference image
   const [selectedRegionId, setSelectedRegionId] = useState<string>('32.09'); // Kab. Cirebon
   const [selectedCommodity, setSelectedCommodity] = useState<string>('cabai_rawit_merah');
-  const [seasonalScenario, setSeasonalScenario] = useState<SeasonalScenario>('normal');
-  const [periodDays, setPeriodDays] = useState<14 | 30 | 60>(30); // 30 Hari default
+  const seasonalScenario: SeasonalScenario = 'normal';
+  const periodDays = 7; // Horizon deterministik 7 hari sesuai kapasitas model EWS
   const [search, setSearch] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('score');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
@@ -251,8 +227,8 @@ export default function WilayahDanRiwayatPage() {
         </div>
       </section>
 
-      {/* Filter Bar (4 Columns) - Matching Reference Image */}
-      <section className="grid grid-cols-1 gap-4 rounded-xl border border-[#DED8CD] bg-white p-4 shadow-sm md:grid-cols-4">
+      {/* Filter Bar (3 Columns: Wilayah, Komoditas, Periode Analisis 7 Hari) */}
+      <section className="grid grid-cols-1 gap-4 rounded-xl border border-[#DED8CD] bg-white p-4 shadow-sm md:grid-cols-3">
         {/* Wilayah Dropdown */}
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[#706B62]">
@@ -301,50 +277,16 @@ export default function WilayahDanRiwayatPage() {
           </div>
         </div>
 
-        {/* Skenario Dropdown */}
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-[#706B62]">
-            Skenario
-          </label>
-          <div className="relative">
-            <select
-              value={seasonalScenario}
-              onChange={(e) => setSeasonalScenario(e.target.value as SeasonalScenario)}
-              className="h-10 w-full appearance-none rounded-lg border border-[#D8D1C5] bg-white pl-3 pr-8 text-xs font-bold text-[#24231F] outline-none transition focus:border-[#67151D]"
-            >
-              {(Object.keys(SEASONAL_MULTIPLIERS) as SeasonalScenario[]).map((key) => (
-                <option key={key} value={key}>
-                  {SEASONAL_MULTIPLIERS[key].shortLabel}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={14}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#706B62]"
-            />
-          </div>
-        </div>
-
-        {/* Periode Analisis Segmented Buttons */}
+        {/* Periode Analisis (Terkunci 7 Hari Sesuai Horizon Model) */}
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[#706B62]">
             Periode Analisis
           </label>
-          <div className="flex h-10 rounded-lg border border-[#D8D1C5] bg-[#F8F4E9] p-1">
-            {([14, 30, 60] as const).map((days) => (
-              <button
-                key={days}
-                type="button"
-                onClick={() => setPeriodDays(days)}
-                className={`flex-1 rounded-md text-xs font-bold transition ${
-                  periodDays === days
-                    ? 'bg-[#67151D] text-white shadow-sm'
-                    : 'text-[#706B62] hover:bg-[#F0EBDE]'
-                }`}
-              >
-                {days} Hari
-              </button>
-            ))}
+          <div className="flex h-10 items-center justify-between rounded-lg border border-[#D8D1C5] bg-[#F8F4E9] px-3.5 text-xs">
+            <span className="font-bold text-[#67151D]">7 Hari Terakhir</span>
+            <span className="text-[11px] font-medium text-[#706B62]">
+              H-7 s.d. H0 (Proyeksi H+7)
+            </span>
           </div>
         </div>
       </section>

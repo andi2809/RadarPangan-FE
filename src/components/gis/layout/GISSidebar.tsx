@@ -3,31 +3,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Wheat,
   Map,
   ChartNoAxesCombined,
   ShieldCheck,
   FlaskConical,
   ChevronRight,
 } from "lucide-react";
+import { RadarPanganLogo } from "@/components/brand/RadarPanganLogo";
 
 const menus = [
   {
-    label: "Peta & Pemantauan",
+    label: "Pemantauan",
     items: [
-      { label: "Dashboard GIS & EWS H+7", href: "/dashboard", icon: Map },
+      { label: "Dashboard", href: "/dashboard", icon: Map },
       {
-        label: "Eksplorasi & Riwayat Wilayah",
+        label: "Riwayat Data",
         href: "/dashboard/wilayah",
         icon: ChartNoAxesCombined,
       },
     ],
   },
   {
-    label: "Validasi & Simulasi",
+    label: "Simulasi & Validasi",
     items: [
-      { label: "Pemantauan Laporan Pasar", href: "/dashboard/laporan-warga", icon: ShieldCheck },
-      { label: "What-If Sandbox", href: "/dashboard/sandbox", icon: FlaskConical },
+      { label: "Laporan Warga", href: "/dashboard/laporan-warga", icon: ShieldCheck },
+      { label: "Sandbox", href: "/dashboard/sandbox", icon: FlaskConical },
     ],
   },
 ];
@@ -40,18 +40,18 @@ export function GISSidebar() {
       {/* Brand Header */}
       <Link
         href="/dashboard"
-        className="flex items-center gap-3 border-b border-[#DED8CD] px-5 py-5 transition hover:bg-[#F0ECE4]"
+        className="flex items-center gap-3 border-b border-[#DED8CD] px-5 py-4 transition hover:bg-[#F0ECE4]"
       >
-        <div className="flex size-10 items-center justify-center rounded-lg bg-[#67151D] text-white shadow-sm">
-          <Wheat size={22} />
+        <div className="flex items-center justify-center text-[#67151D] shrink-0">
+          <RadarPanganLogo size={28} />
         </div>
 
         <div>
-          <p className="text-sm font-extrabold tracking-tight text-[#24231F]">
+          <p className="text-sm font-black tracking-tight text-[#24231F] leading-none">
             RADAR PANGAN
           </p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-[#67151D]">
-            GIS · EWS &amp; DSS JABAR
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[#67151D]">
+            EWS &amp; DSS Jawa Barat
           </p>
         </div>
       </Link>

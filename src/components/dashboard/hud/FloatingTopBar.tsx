@@ -4,6 +4,7 @@ import React from 'react';
 import { Commodity } from '../../../types/domain';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { RadarPanganLogo } from '@/components/brand/RadarPanganLogo';
 
 interface FloatingTopBarProps {
   commodities: Commodity[];
@@ -35,9 +36,12 @@ export const FloatingTopBar: React.FC<FloatingTopBarProps> = ({
               e.preventDefault();
               onBackToOverview();
             }}
-            className="font-black text-sm tracking-wider text-[#791D2A] hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-85 transition-opacity"
           >
-            RADAR PANGAN
+            <RadarPanganLogo size={20} color="#791D2A" />
+            <span className="font-black text-sm tracking-wider text-[#791D2A]">
+              RADAR PANGAN
+            </span>
           </Link>
 
           <span className="w-px h-5 bg-[#E5E2DA]" />

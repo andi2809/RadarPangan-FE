@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ActiveNavTab, ActiveScreen, Commodity } from '../../types/domain';
+import { RadarPanganLogo } from '@/components/brand/RadarPanganLogo';
 import {
   Map,
   BarChart3,
@@ -51,15 +52,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Brand Header */}
         <div className={`p-4 border-b ${isCommandCenter ? 'border-slate-800' : 'border-slate-200'}`}>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-sky-500 flex items-center justify-center text-white shadow-sm font-bold text-lg">
-              <ShieldAlert className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-[#67151D]/15 flex items-center justify-center text-[#67151D] shadow-sm">
+              <RadarPanganLogo size={22} color="#67151D" />
             </div>
             <div>
               <div className="font-bold text-base tracking-tight flex items-center gap-1.5">
                 <span>RADAR PANGAN</span>
               </div>
               <div className="text-[10px] font-mono tracking-wider font-semibold uppercase text-sky-600 dark:text-sky-400">
-                EWS & DSS JABAR
+                EWS &amp; DSS JABAR
               </div>
             </div>
           </div>

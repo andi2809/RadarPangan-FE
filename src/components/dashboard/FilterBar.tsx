@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Commodity } from '../../types/domain';
-import { ShieldAlert, Layers } from 'lucide-react';
+import { Layers, ShieldAlert } from 'lucide-react';
+import { RadarPanganLogo } from '@/components/brand/RadarPanganLogo';
 
 interface FilterBarProps {
   commodities: Commodity[];
@@ -32,7 +33,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3 bg-[#fffdf7]/95 border border-[#ded8c8] rounded-xl px-4 py-2.5 shadow-lg backdrop-blur-md pointer-events-auto">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#f4e8e9] border border-[#dfc7b8] text-[#67151d]">
-            <ShieldAlert className="w-5 h-5" />
+            <RadarPanganLogo size={20} color="#67151d" />
           </div>
           <div>
             <div className="flex items-center gap-2">
