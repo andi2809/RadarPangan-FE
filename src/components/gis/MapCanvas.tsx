@@ -33,6 +33,21 @@ interface MapCanvasProps {
   onOpenCommandCenter?: (regionId?: string) => void;
 }
 
+function checkWebGLSupport(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const canvas = document.createElement('canvas');
+    const gl2 = canvas.getContext('webgl2');
+    if (!gl2) return false;
+    if (typeof (maplibregl as unknown as { supported?: (options?: unknown) => boolean }).supported === 'function') {
+      return (maplibregl as unknown as { supported: (options?: unknown) => boolean }).supported({ failIfMajorPerformanceCaveat: false });
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const MapCanvas: React.FC<MapCanvasProps> = ({
   geoJson,
   allTelemetry,
@@ -51,6 +66,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const allTelemetryRef = useRef(allTelemetry);
   const onSelectRegionRef = useRef(onSelectRegion);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isWebGLAvailable, setIsWebGLAvailable] = useState<boolean>(true);
 
   useEffect(() => {
     allTelemetryRef.current = allTelemetry;
@@ -150,6 +166,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
+    if (!checkWebGLSupport()) {
+      setIsWebGLAvailable(false);
+      return;
+    }
+
     if (typeof maplibregl.setWorkerUrl === 'function') {
       maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
     }
@@ -200,8 +221,8 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         bearing: 0,
         attributionControl: false,
       });
-    } catch (err) {
-      console.warn('MapLibre GL initialization skipped or WebGL not available:', err);
+    } catch {
+      setIsWebGLAvailable(false);
       return;
     }
 
@@ -466,6 +487,24 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     <div className={containerClasses}>
       {/* MapLibre DOM Node */}
       <div ref={mapContainerRef} className="w-full h-full" />
+
+      {/* WebGL Fallback Overlay */}
+      {!isWebGLAvailable && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#EAE8E1]/95 p-6 text-center select-none">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm border border-[#DED8CD] text-[#67151D] mb-3">
+            <MapPin size={24} />
+          </div>
+          <h4 className="text-sm font-extrabold text-[#24231F]">
+            Peta Berjalan dalam Mode Ringan
+          </h4>
+          <p className="mt-1 max-w-sm text-xs text-[#706B62] leading-relaxed">
+            Akselerasi grafis WebGL2 tidak aktif di peramban ini. Anda tetap dapat memilih dan menganalisis 27 Kabupaten/Kota melalui dropdown filter wilayah di toolbar atas.
+          </p>
+          <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white border border-[#DED8CD] px-3 py-1.5 text-[11px] font-bold text-[#67151D] shadow-xs">
+            <span>27 Wilayah Jawa Barat Terpantau Aktif</span>
+          </div>
+        </div>
+      )}
 
       {/* Zoom and Reset Controls (Vertical stack top-left) */}
       <div className="absolute top-4 left-4 z-20 flex flex-col bg-white rounded-xl border border-[#E5E2DA] shadow-sm text-xs select-none overflow-hidden">
