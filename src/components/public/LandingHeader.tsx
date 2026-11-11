@@ -76,17 +76,17 @@ export const LandingHeader: React.FC = () => {
             <div className="font-black tracking-tight text-[#1e221f] leading-none text-base sm:text-lg whitespace-nowrap">
               RADAR PANGAN
             </div>
-            <span className="hidden sm:block text-[11px] text-[#5c5b52] font-medium tracking-wide mt-1 whitespace-nowrap">
+            <span className="hidden lg:block text-[11px] text-[#5c5b52] font-medium tracking-wide mt-1 whitespace-nowrap">
               Sistem Pemantauan Harga Pangan Nasional
             </span>
-            <span className="block sm:hidden text-[10px] text-[#5c5b52] font-medium mt-0.5 truncate">
+            <span className="block lg:hidden text-[10px] text-[#5c5b52] font-medium mt-0.5 truncate">
               Pemantauan Harga Pangan
             </span>
           </div>
         </Link>
 
         {/* Desktop Nav Links (Hanya: Beranda, Metodologi, Peta Wilayah) */}
-        <div className="hidden md:flex items-center gap-6 text-[14px] font-semibold text-[#2d312e]">
+        <div className="hidden md:flex items-center gap-4 lg:gap-6 text-[13px] lg:text-[14px] font-semibold text-[#2d312e]">
           <Link
             href="/#beranda"
             onClick={(e) => scrollToAnchor(e, 'beranda')}
@@ -110,9 +110,10 @@ export const LandingHeader: React.FC = () => {
         <div className="flex items-center gap-3 flex-shrink-0">
           <Link
             href="/lapor"
-            className="inline-flex items-center gap-1.5 py-2.5 px-4 rounded-xl bg-[#67151d] hover:bg-[#4c0d15] text-white font-bold text-xs sm:text-sm shadow-sm transition-colors whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 min-h-[40px] py-2.5 px-3.5 sm:px-4 rounded-xl bg-[#67151d] hover:bg-[#4c0d15] text-white font-bold text-xs sm:text-sm shadow-sm transition-colors whitespace-nowrap"
           >
-            <span>Laporkan Harga Pasar</span>
+            <span className="sm:hidden">Lapor</span>
+            <span className="hidden sm:inline">Laporkan Harga Pasar</span>
           </Link>
 
           {/* Mobile & Tablet Menu Button */}

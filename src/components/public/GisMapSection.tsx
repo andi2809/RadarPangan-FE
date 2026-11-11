@@ -209,6 +209,17 @@ export const GisMapSection: React.FC = () => {
 		return {};
 	}, [activeCommodity.id]);
 
+	const latestObservationDate = useMemo(() => {
+		const dates = Object.values(commodityTelemetryMap)
+			.map((t: any) => t?.currentPrice?.date)
+			.filter(Boolean) as string[];
+		if (dates.length === 0) return "2026-10-31";
+		return dates.sort()[dates.length - 1];
+	}, [commodityTelemetryMap]);
+
+	const latestObservationLabel = formatDateID(latestObservationDate);
+	const latestObservationShortLabel = `${formatShortDateID(latestObservationDate)} ${latestObservationDate.slice(0, 4)}`;
+
 	// Extract sorted list of all 38 provinces from Indonesia GeoJSON
 	const provinceList = useMemo(() => {
 		if (!indoGeo?.features) return ["Jawa Barat"];
@@ -422,6 +433,8 @@ export const GisMapSection: React.FC = () => {
 			const cur = t.currentPrice;
 			const hist: { date: string; hargaRp: number }[] = t.history14d || [];
 			const firstPrice = hist.length > 0 ? hist[0].hargaRp : cur.hargaAktualRp;
+			const firstDateLabel =
+				hist.length > 0 ? formatShortDateID(hist[0].date) : formatShortDateID(cur.date);
 			const change14dPct =
 				firstPrice > 0
 					? (((cur.hargaAktualRp - firstPrice) / firstPrice) * 100).toFixed(1)
@@ -440,7 +453,7 @@ export const GisMapSection: React.FC = () => {
 				})`,
 				secondaryLabel: "Perubahan Harga 14 Hari Terakhir",
 				secondaryValue: `${Number(change14dPct) > 0 ? "+" : ""}${change14dPct}%`,
-				secondarySub: `Dari Rp ${firstPrice.toLocaleString("id-ID")} (9 Okt) ke Rp ${cur.hargaAktualRp.toLocaleString("id-ID")} (23 Okt)`,
+				secondarySub: `Dari Rp ${firstPrice.toLocaleString("id-ID")} (${firstDateLabel}) ke Rp ${cur.hargaAktualRp.toLocaleString("id-ID")} (${formatShortDateID(cur.date)})`,
 				tertiaryLabel: "Perbandingan Daya Beli (UMK Daerah)",
 				tertiaryValue: regMeta
 					? `Rp ${(regMeta.umk2026 / 1000000).toFixed(2)} Juta/bln`
@@ -526,7 +539,7 @@ export const GisMapSection: React.FC = () => {
 				selectedProvince === "ALL"
 					? "Ringkasan Data Nasional (Sampel Jawa Barat)"
 					: "Ringkasan Provinsi Jawa Barat",
-			subtitle: `27 Kabupaten/Kota • Observasi 23 Oktober 2026`,
+			subtitle: `27 Kabupaten/Kota • Observasi ${latestObservationLabel}`,
 			primaryLabel: `Rata-Rata Harga ${activeCommodity.name}`,
 			primaryValue: `Rp ${avgPrice.toLocaleString("id-ID")}/${activeCommodity.satuan}`,
 			primarySub: `Acuan ${activeCommodity.jenisAcuan === "HET" ? "HET" : "HAP"}: Rp ${activeCommodity.hargaAcuanRp.toLocaleString("id-ID")} (${
@@ -573,7 +586,7 @@ export const GisMapSection: React.FC = () => {
 				selectedRegionId
 			: "Rata-Rata 27 Kab/Kota Jawa Barat";
 
-		// Build 15-day historical series (9 Okt - 23 Okt 2026)
+		// Build 14-day historical series (18 Okt - 31 Okt 2026)
 		let histSeries: {
 			date: string;
 			label: string;
@@ -667,6 +680,8 @@ export const GisMapSection: React.FC = () => {
 			chartW,
 			chartH,
 			colWidth,
+			firstLabel: histSeries[0]?.label ?? "",
+			lastLabel: histSeries[histSeries.length - 1]?.label ?? "",
 		};
 	}, [commodityTelemetryMap, selectedRegionId, activeCommodity]);
 
@@ -833,7 +848,8 @@ export const GisMapSection: React.FC = () => {
 					<p className="text-base sm:text-lg text-[#4a4b44] mt-3 leading-relaxed">
 						Jelajahi harga komoditas pokok menurut wilayah, bandingkan harga
 						pasar terhadap acuan yang relevan (HAP/HET), dan amati perubahan
-						harga berdasarkan periode observasi data yang tersedia.
+						harga berdasarkan periode observasi data yang tersedia. Warna peta
+						merepresentasikan harga observasi aktual, bukan angka proyeksi.
 					</p>
 				</div>
 
@@ -1019,7 +1035,7 @@ export const GisMapSection: React.FC = () => {
 									</button>
 								)}
 								<span className="font-mono text-[11px] sm:text-xs text-[#5c5b52] whitespace-nowrap">
-									23 Okt 2026
+									{latestObservationShortLabel}
 								</span>
 							</div>
 						</div>
@@ -1650,7 +1666,8 @@ export const GisMapSection: React.FC = () => {
 								Tren Harga {activeCommodity.name} — {chartData.locationLabel}
 							</h3>
 							<p className="text-sm text-[#5c5b52] mt-0.5">
-								Menampilkan riwayat harga observasi harian resmi Bapanas (9–23 Oktober 2026)
+								Menampilkan riwayat harga observasi harian resmi Bapanas (
+								{chartData.firstLabel}–{chartData.lastLabel} 2026)
 								dan perbandingannya terhadap standar acuan pemerintah (
 								{activeCommodity.jenisAcuan === "HET" ? "HET" : "HAP"}).
 							</p>
@@ -1884,7 +1901,10 @@ export const GisMapSection: React.FC = () => {
 						<div className="flex flex-wrap items-center gap-6 font-medium">
 							<span className="inline-flex items-center gap-2">
 								<span className="w-5 h-0.5 bg-[#67151d] inline-block" />
-								<span>Data Historis Observasi Bapanas (9–23 Okt 2026)</span>
+								<span>
+									Data Historis Observasi Bapanas ({chartData.firstLabel}–
+									{chartData.lastLabel} 2026)
+								</span>
 							</span>
 							<span className="inline-flex items-center gap-2">
 								<span className="w-5 h-0 border-b-2 border-dashed border-[#347b56] inline-block" />

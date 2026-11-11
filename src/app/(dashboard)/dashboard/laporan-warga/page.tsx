@@ -336,7 +336,7 @@ export default function LaporanWargaPage() {
 						<span>
 							Diperbarui:{" "}
 							<strong className="text-slate-900 font-medium">
-								24 Okt 2026, 09:27 WIB
+								31 Okt 2026, 09:27 WIB
 							</strong>
 						</span>
 					</div>

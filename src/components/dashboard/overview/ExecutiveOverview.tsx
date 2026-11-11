@@ -483,10 +483,10 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
           </div>
 
           <div className="flex justify-between items-center text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-100">
-            <span>15 Okt</span>
             <span>18 Okt</span>
-            <span className="text-slate-800 font-bold">22 Okt (Hari Ini)</span>
-            <span className="text-rose-600 font-bold">29 Okt (H+7)</span>
+            <span>24 Okt</span>
+            <span className="text-slate-800 font-bold">31 Okt (Hari Ini)</span>
+            <span className="text-rose-600 font-bold">7 Nov (H+7)</span>
           </div>
         </div>
       </div>

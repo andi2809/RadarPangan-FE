@@ -42,7 +42,7 @@ export const COMMODITY_REFERENCE_NEED: Record<string, number> = {
   minyak_goreng_curah: 4,
 };
 
-export const AVERAGE_JABAR_UMK_RP = 3150000;
+export const AVERAGE_JABAR_UMK_RP = 3809560;
 
 export function calculateCommodityUmkBurden(
   umkWilayahRp: number,

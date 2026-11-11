@@ -52,7 +52,7 @@ export const RightAnalysisDrawer: React.FC<RightAnalysisDrawerProps> = ({
     if (!telemetry?.currentPrice) return null;
     return {
       price: telemetry.currentPrice.hargaAktualRp,
-      dateLabel: '24 Okt 2026',
+      dateLabel: '31 Okt 2026',
       isToday: true,
     };
   }, [telemetry?.currentPrice?.hargaAktualRp]);
@@ -106,8 +106,8 @@ export const RightAnalysisDrawer: React.FC<RightAnalysisDrawerProps> = ({
 
   // Data deret riwayat & titik kunci
   const historyCount = historySeries.length;
-  const firstHistoryPoint = historySeries[0] || { date: '2026-10-10', hargaRp: displayPrice };
-  const lastHistoryPoint = historySeries[historyCount - 1] || { date: '2026-10-24', hargaRp: displayPrice };
+  const firstHistoryPoint = historySeries[0] || { date: '2026-10-18', hargaRp: displayPrice };
+  const lastHistoryPoint = historySeries[historyCount - 1] || { date: '2026-10-31', hargaRp: displayPrice };
   const midHistoryPoint = historySeries[Math.floor(historyCount / 2)] || lastHistoryPoint;
 
   const rangeChangeRp = lastHistoryPoint.hargaRp - firstHistoryPoint.hargaRp;

@@ -23,7 +23,7 @@ export const FloatingTopBar: React.FC<FloatingTopBarProps> = ({
   activeHorizon,
   onChangeHorizon,
   onBackToOverview,
-  lastUpdatedDate = '24 Okt 2026, 09:27 WIB',
+  lastUpdatedDate = '31 Okt 2026, 09:27 WIB',
 }) => {
   return (
     <header className="absolute top-0 left-0 right-0 z-40 h-16 bg-[#F5F3ED]/95 border-b border-[#E5E2DA] px-4 md:px-6 shadow-sm backdrop-blur-sm select-none">

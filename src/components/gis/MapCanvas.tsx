@@ -547,7 +547,11 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         >
           <div>
             <div className="font-bold text-xs text-[#292824]">Kondisi Harga</div>
-            <div className="text-[10px] text-[#77746C]">(Deviasi terhadap Acuan)</div>
+            <div className="text-[10px] text-[#77746C]">
+              {activeHorizon === 'h7'
+                ? 'Proyeksi H+7 (7 Nov 2026)'
+                : 'Harga aktual (31 Okt 2026)'}
+            </div>
           </div>
           <button
             type="button"

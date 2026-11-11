@@ -334,7 +334,7 @@ export const HeroSection: React.FC = () => {
 					<div className="lg:col-span-5 min-w-0">
 						<article className="bg-[#fffdf7] border border-[#d6cebe] rounded-2xl p-5 sm:p-6 shadow-md space-y-5">
 							{/* Top Row: Location & Commodity Selector (No status badge!) */}
-							<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#e5dfd0]">
+							<div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 pb-4 border-b border-[#e5dfd0]">
 								<div>
 									<span className="text-xs font-mono uppercase tracking-wider text-[#5c5b52] block">
 										Sampel Pantauan Wilayah
@@ -352,7 +352,7 @@ export const HeroSection: React.FC = () => {
 										id="heroCommoditySelect"
 										value={selectedCommodityId}
 										onChange={(e) => setSelectedCommodityId(e.target.value)}
-										className="w-full sm:w-auto appearance-none pl-3.5 pr-9 py-2 rounded-xl bg-[#f8f4e9] hover:bg-[#f0ebde] border border-[#bfb7a6] text-sm font-bold text-[#67151d] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#67151d]"
+										className="w-full xl:w-auto appearance-none pl-3.5 pr-9 py-2 rounded-xl bg-[#f8f4e9] hover:bg-[#f0ebde] border border-[#bfb7a6] text-sm font-bold text-[#67151d] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#67151d]"
 									>
 										{PUBLIC_COMMODITIES.map((comm) => (
 											<option key={comm.id} value={comm.id}>
@@ -586,7 +586,7 @@ export const HeroSection: React.FC = () => {
 						</span>
 					</div>
 
-					<div className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 2xl:gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory no-scrollbar pb-2 sm:pb-0 px-0.5">
+					<div className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5 2xl:gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory no-scrollbar pb-2 sm:pb-0 px-0.5">
 						{commodityCards.map(({ comm, price, diff, sparklinePath }) => {
 							const isSelected = comm.id === selectedCommodityId;
 							return (

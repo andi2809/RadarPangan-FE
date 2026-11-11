@@ -46,7 +46,7 @@ export const DEFAULT_CITIZEN_REPORTS: ApprovedCitizenReport[] = [
     jumlahLaporan: 16,
     radiusKm: 2.3,
     statusApproval: 'approved',
-    updatedAt: '24 Okt 2026, 09:10 WIB',
+    updatedAt: '31 Okt 2026, 09:10 WIB',
   },
   {
     id: 'CLUST-BKS-01',
@@ -61,7 +61,7 @@ export const DEFAULT_CITIZEN_REPORTS: ApprovedCitizenReport[] = [
     jumlahLaporan: 18,
     radiusKm: 2.1,
     statusApproval: 'approved',
-    updatedAt: '24 Okt 2026, 08:30 WIB',
+    updatedAt: '31 Okt 2026, 08:30 WIB',
   },
   {
     id: 'CLUST-BDG-02',
@@ -76,7 +76,7 @@ export const DEFAULT_CITIZEN_REPORTS: ApprovedCitizenReport[] = [
     jumlahLaporan: 24,
     radiusKm: 1.8,
     statusApproval: 'approved',
-    updatedAt: '24 Okt 2026, 09:15 WIB',
+    updatedAt: '31 Okt 2026, 09:15 WIB',
   },
   {
     id: 'CLUST-BGR-03',
@@ -91,7 +91,7 @@ export const DEFAULT_CITIZEN_REPORTS: ApprovedCitizenReport[] = [
     jumlahLaporan: 12,
     radiusKm: 2.5,
     statusApproval: 'pending',
-    updatedAt: '24 Okt 2026, 07:45 WIB',
+    updatedAt: '31 Okt 2026, 07:45 WIB',
   },
   {
     id: 'CLUST-GRT-04',
@@ -106,7 +106,7 @@ export const DEFAULT_CITIZEN_REPORTS: ApprovedCitizenReport[] = [
     jumlahLaporan: 14,
     radiusKm: 1.9,
     statusApproval: 'approved',
-    updatedAt: '24 Okt 2026, 08:50 WIB',
+    updatedAt: '31 Okt 2026, 08:50 WIB',
   },
 ];
 

@@ -36,7 +36,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 2.7,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:15 WIB',
+    updatedAt: '31 Okt 2026, 08:15 WIB',
   },
   {
     id: 'psr-bdgkot-01',
@@ -52,7 +52,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 6.4,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:30 WIB',
+    updatedAt: '31 Okt 2026, 08:30 WIB',
   },
   {
     id: 'psr-bgrkab-01',
@@ -68,7 +68,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:45 WIB',
+    updatedAt: '31 Okt 2026, 07:45 WIB',
   },
   {
     id: 'psr-garutkab-01',
@@ -84,7 +84,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 1.5,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:10 WIB',
+    updatedAt: '31 Okt 2026, 08:10 WIB',
   },
   {
     id: 'psr-bekasikot-01',
@@ -100,7 +100,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 4.6,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:20 WIB',
+    updatedAt: '31 Okt 2026, 08:20 WIB',
   },
   {
     id: 'psr-depokkot-01',
@@ -116,7 +116,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 6.2,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:25 WIB',
+    updatedAt: '31 Okt 2026, 08:25 WIB',
   },
   {
     id: 'psr-bogorkot-01',
@@ -132,7 +132,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 3.3,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:05 WIB',
+    updatedAt: '31 Okt 2026, 08:05 WIB',
   },
   {
     id: 'psr-tasikkt-01',
@@ -148,7 +148,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: -0.6,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 07:55 WIB',
+    updatedAt: '31 Okt 2026, 07:55 WIB',
   },
   {
     id: 'psr-krwkab-01',
@@ -164,7 +164,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 2.1,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:12 WIB',
+    updatedAt: '31 Okt 2026, 08:12 WIB',
   },
   {
     id: 'psr-crbnhkb-01',
@@ -180,7 +180,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: -2.9,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 07:50 WIB',
+    updatedAt: '31 Okt 2026, 07:50 WIB',
   },
   {
     id: 'psr-crbkot-01',
@@ -196,7 +196,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 0.6,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:00 WIB',
+    updatedAt: '31 Okt 2026, 08:00 WIB',
   },
   {
     id: 'psr-cmhkot-01',
@@ -212,7 +212,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: 5.4,
     statusKuorum: 'tercapai',
-    updatedAt: '23 Okt 2026, 08:18 WIB',
+    updatedAt: '31 Okt 2026, 08:18 WIB',
   },
   {
     id: 'psr-pwkkab-01',
@@ -228,7 +228,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:35 WIB',
+    updatedAt: '31 Okt 2026, 07:35 WIB',
   },
   {
     id: 'psr-sbgkab-01',
@@ -244,7 +244,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:40 WIB',
+    updatedAt: '31 Okt 2026, 07:40 WIB',
   },
   {
     id: 'psr-indramayu-01',
@@ -260,7 +260,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:30 WIB',
+    updatedAt: '31 Okt 2026, 07:30 WIB',
   },
   {
     id: 'psr-bdgkab-01',
@@ -276,7 +276,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:52 WIB',
+    updatedAt: '31 Okt 2026, 07:52 WIB',
   },
   {
     id: 'psr-kbb-01',
@@ -292,7 +292,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:22 WIB',
+    updatedAt: '31 Okt 2026, 07:22 WIB',
   },
   {
     id: 'psr-cianjur-01',
@@ -308,7 +308,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:48 WIB',
+    updatedAt: '31 Okt 2026, 07:48 WIB',
   },
   {
     id: 'psr-smikab-01',
@@ -324,7 +324,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:15 WIB',
+    updatedAt: '31 Okt 2026, 07:15 WIB',
   },
   {
     id: 'psr-smikot-01',
@@ -340,7 +340,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:10 WIB',
+    updatedAt: '31 Okt 2026, 07:10 WIB',
   },
   {
     id: 'psr-mjl-01',
@@ -356,7 +356,7 @@ export const MOCK_MARKET_CONSENSUS: MarketConsensusItem[] = [
     hargaAcuanRp: 48200,
     selisihPct: null,
     statusKuorum: 'menunggu',
-    updatedAt: '23 Okt 2026, 07:20 WIB',
+    updatedAt: '31 Okt 2026, 07:20 WIB',
   },
   {
     id: 'psr-smd-01',
@@ -556,24 +556,24 @@ export interface AuditReportItem {
 
 // 18 Laporan Individual Default untuk Pasar Baru Cikarang (Cabai Rawit Merah)
 export const DEFAULT_CIKARANG_CABAI_AUDIT_REPORTS: AuditReportItem[] = [
-  { id: 'RPT-CKR-001', waktuLapor: '24 Okt 2026, 09:14', hargaRp: 49500, jarakKm: 1.2, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-002', waktuLapor: '24 Okt 2026, 09:02', hargaRp: 50000, jarakKm: 0.8, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-003', waktuLapor: '24 Okt 2026, 08:57', hargaRp: 49000, jarakKm: 1.9, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-004', waktuLapor: '24 Okt 2026, 08:41', hargaRp: 56000, jarakKm: 2.1, status: 'outlier', keterangan: 'Deviasi +13,1% dari median (> 10%)' },
-  { id: 'RPT-CKR-005', waktuLapor: '24 Okt 2026, 08:37', hargaRp: 48500, jarakKm: 0.6, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-006', waktuLapor: '24 Okt 2026, 08:30', hargaRp: 49500, jarakKm: 1.4, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-007', waktuLapor: '24 Okt 2026, 08:24', hargaRp: 50500, jarakKm: 2.5, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-008', waktuLapor: '24 Okt 2026, 08:18', hargaRp: 49500, jarakKm: 0.4, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-009', waktuLapor: '24 Okt 2026, 08:11', hargaRp: 48000, jarakKm: 1.7, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-010', waktuLapor: '24 Okt 2026, 08:05', hargaRp: 51000, jarakKm: 2.8, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-011', waktuLapor: '24 Okt 2026, 07:58', hargaRp: 49500, jarakKm: 1.1, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-012', waktuLapor: '24 Okt 2026, 07:49', hargaRp: 49000, jarakKm: 0.9, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-013', waktuLapor: '24 Okt 2026, 07:42', hargaRp: 50000, jarakKm: 2.2, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-014', waktuLapor: '24 Okt 2026, 07:35', hargaRp: 52000, jarakKm: 1.6, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-015', waktuLapor: '24 Okt 2026, 07:28', hargaRp: 47000, jarakKm: 2.7, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-016', waktuLapor: '24 Okt 2026, 07:20', hargaRp: 48500, jarakKm: 1.5, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
-  { id: 'RPT-CKR-017', waktuLapor: '24 Okt 2026, 07:12', hargaRp: 49000, jarakKm: 4.8, status: 'radius_invalid', keterangan: 'Jarak 4.8 km dari pasar (> 3 km)' },
-  { id: 'RPT-CKR-018', waktuLapor: '24 Okt 2026, 07:05', hargaRp: 49500, jarakKm: 1.0, status: 'duplicate', keterangan: 'Duplikasi perangkat: Perangkat telah melapor hari ini' },
+  { id: 'RPT-CKR-001', waktuLapor: '31 Okt 2026, 09:14', hargaRp: 49500, jarakKm: 1.2, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-002', waktuLapor: '31 Okt 2026, 09:02', hargaRp: 50000, jarakKm: 0.8, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-003', waktuLapor: '31 Okt 2026, 08:57', hargaRp: 49000, jarakKm: 1.9, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-004', waktuLapor: '31 Okt 2026, 08:41', hargaRp: 56000, jarakKm: 2.1, status: 'outlier', keterangan: 'Deviasi +13,1% dari median (> 10%)' },
+  { id: 'RPT-CKR-005', waktuLapor: '31 Okt 2026, 08:37', hargaRp: 48500, jarakKm: 0.6, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-006', waktuLapor: '31 Okt 2026, 08:30', hargaRp: 49500, jarakKm: 1.4, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-007', waktuLapor: '31 Okt 2026, 08:24', hargaRp: 50500, jarakKm: 2.5, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-008', waktuLapor: '31 Okt 2026, 08:18', hargaRp: 49500, jarakKm: 0.4, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-009', waktuLapor: '31 Okt 2026, 08:11', hargaRp: 48000, jarakKm: 1.7, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-010', waktuLapor: '31 Okt 2026, 08:05', hargaRp: 51000, jarakKm: 2.8, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-011', waktuLapor: '31 Okt 2026, 07:58', hargaRp: 49500, jarakKm: 1.1, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-012', waktuLapor: '31 Okt 2026, 07:49', hargaRp: 49000, jarakKm: 0.9, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-013', waktuLapor: '31 Okt 2026, 07:42', hargaRp: 50000, jarakKm: 2.2, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-014', waktuLapor: '31 Okt 2026, 07:35', hargaRp: 52000, jarakKm: 1.6, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-015', waktuLapor: '31 Okt 2026, 07:28', hargaRp: 47000, jarakKm: 2.7, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-016', waktuLapor: '31 Okt 2026, 07:20', hargaRp: 48500, jarakKm: 1.5, status: 'valid', keterangan: 'Masuk radius, dalam rentang wajar' },
+  { id: 'RPT-CKR-017', waktuLapor: '31 Okt 2026, 07:12', hargaRp: 49000, jarakKm: 4.8, status: 'radius_invalid', keterangan: 'Jarak 4.8 km dari pasar (> 3 km)' },
+  { id: 'RPT-CKR-018', waktuLapor: '31 Okt 2026, 07:05', hargaRp: 49500, jarakKm: 1.0, status: 'duplicate', keterangan: 'Duplikasi perangkat: Perangkat telah melapor hari ini' },
 ];
 
 // Matriks Konsensus Komoditas Non-Cabai per Pasar (27 Pasar)
@@ -900,7 +900,7 @@ export function getAllOfficialMarketsConsensusByCommodity(
         hargaAcuanRp: comm?.hargaAcuanRp || 0,
         selisihPct: comm?.selisihPct || null,
         statusKuorum: comm?.statusKuorum || 'belum_ada',
-        updatedAt: '24 Okt 2026, 09:15 WIB',
+        updatedAt: '31 Okt 2026, 09:15 WIB',
         commodityId: comm?.commodityId || normKey,
         commodityName: comm?.commodityName || '',
         satuan: comm?.satuan || '',
@@ -1312,7 +1312,7 @@ export function getMarketDetailConsensus(
     for (let i = 0; i < laporanValid; i++) {
       const minute = (startMinute - i * 4 + 60) % 60;
       const hour = startHour - Math.floor((i * 4) / 60);
-      const timeStr = `24 Okt 2026, ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      const timeStr = `31 Okt 2026, ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
       const delta = ((i % 5) - 2) * (cfg.satuan === 'kg' && cfg.hargaAcuanRp > 20000 ? 500 : 200);
       reports.push({
         id: `RPT-${codePrefix}-${String(i + 1).padStart(3, '0')}`,
@@ -1330,7 +1330,7 @@ export function getMarketDetailConsensus(
       const extremePrice = Math.round((basePrice * 1.15) / 100) * 100;
       reports.push({
         id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
-        waktuLapor: '24 Okt 2026, 08:44',
+        waktuLapor: '31 Okt 2026, 08:44',
         hargaRp: extremePrice,
         jarakKm: 1.8,
         status: 'outlier',
@@ -1343,7 +1343,7 @@ export function getMarketDetailConsensus(
       const idx = laporanValid + outlierMad + i + 1;
       reports.push({
         id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
-        waktuLapor: '24 Okt 2026, 07:18',
+        waktuLapor: '31 Okt 2026, 07:18',
         hargaRp: basePrice,
         jarakKm: 4.5,
         status: 'radius_invalid',
@@ -1356,7 +1356,7 @@ export function getMarketDetailConsensus(
       const idx = laporanValid + outlierMad + diLuarRadius + i + 1;
       reports.push({
         id: `RPT-${codePrefix}-${String(idx).padStart(3, '0')}`,
-        waktuLapor: '24 Okt 2026, 07:05',
+        waktuLapor: '31 Okt 2026, 07:05',
         hargaRp: basePrice,
         jarakKm: 1.0,
         status: 'duplicate',

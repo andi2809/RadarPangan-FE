@@ -28,7 +28,7 @@ import {
 } from "@/data/mock/marketConsensus";
 
 const numberFormat = new Intl.NumberFormat("id-ID");
-const LAST_UPDATED_TEXT = "24 Okt 2026, 09:27 WIB";
+const LAST_UPDATED_TEXT = "31 Okt 2026, 09:27 WIB";
 
 function DetailLaporanPasarContent() {
 	const params = useParams();

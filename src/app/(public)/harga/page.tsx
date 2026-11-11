@@ -18,6 +18,18 @@ function formatShortDate(dateStr: string): string {
   return `${day} ${months[monthIdx] || 'Okt'}`;
 }
 
+function formatLongDate(dateStr: string): string {
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const day = parseInt(parts[2], 10);
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  return `${day} ${months[monthIdx] || 'Oktober'} ${parts[0]}`;
+}
+
 export default function DetailHargaPage() {
   const [selectedRegionId, setSelectedRegionId] = useState<string>('32.75');
   const [selectedCommodityId, setSelectedCommodityId] = useState<string>('cabai_rawit_merah');
@@ -104,6 +116,10 @@ export default function DetailHargaPage() {
   const deviasiPct = regionTelemetry?.currentPrice?.selisihPersen ?? 0;
   const umkRatioPct = regionTelemetry?.affordability?.umkRatioBasketPercent ?? 0;
   const history: { date: string; hargaRp: number }[] = regionTelemetry?.history14d || [];
+  const historyRangeLabel =
+    history.length > 0
+      ? `${formatShortDate(history[0].date)}–${formatShortDate(history[history.length - 1].date)} 2026`
+      : 'periode observasi terbaru';
 
   // SVG Chart Geometry
   const chartGeom = useMemo(() => {
@@ -301,7 +317,10 @@ export default function DetailHargaPage() {
               </span>
             </div>
             <div className="text-xs sm:text-sm text-[#5c5b52]">
-              Tanggal data: 23 Oktober 2026
+              Tanggal data:{' '}
+              {regionTelemetry?.currentPrice?.date
+                ? formatLongDate(regionTelemetry.currentPrice.date)
+                : '31 Oktober 2026'}
             </div>
           </div>
 
@@ -328,7 +347,7 @@ export default function DetailHargaPage() {
               Pergerakan Harga {selectedComm.name} di {selectedRegion.name}
             </h2>
             <p className="text-sm text-[#5c5b52] mt-0.5">
-              Garis marun menunjukkan harga observasi harian (9–23 Oktober 2026); garis hijau putus-putus adalah standar acuan pemerintah.
+              Garis marun menunjukkan harga observasi harian ({historyRangeLabel}); garis hijau putus-putus adalah standar acuan pemerintah.
             </p>
           </div>
 

@@ -73,7 +73,7 @@ export const BottomTelemetryDock: React.FC<BottomTelemetryDockProps> = ({
 
     if (predictionH7) {
       points.push({
-        date: predictionH7.targetDate || '2026-10-30',
+        date: predictionH7.targetDate || '2026-11-07',
         hargaRp: predictionH7.hargaPrediksiH7Rp,
         isH7: true,
       });
@@ -263,7 +263,7 @@ export const BottomTelemetryDock: React.FC<BottomTelemetryDockProps> = ({
 
             <div className="text-[10px] text-[#77746C] mt-1 pt-1.5 border-t border-[#E5E2DA] flex justify-between items-center">
               <span className="truncate">Klik baris untuk sorot wilayah</span>
-              <span className="font-mono shrink-0 ml-1">Bapanas 24 Okt</span>
+              <span className="font-mono shrink-0 ml-1">Bapanas 31 Okt</span>
             </div>
           </div>
 
